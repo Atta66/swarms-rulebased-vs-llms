@@ -25,7 +25,7 @@ class RandomMovingPoints:
             instructions=f"""respond with {self.num_points} pairs of x and y coordinates.
             x should be between 0 and {self.width - 1} and y should be between 0 and {self.height - 1}.
             Just write the coordinates as space-separated pairs, do not write anything other than the coordinates.
-            do not use brackets and commas, the format should be exactly in the format (x1,y1), (x2,y2), (x3,y3) and
+            do not use brackets and commas, the format should be exactly in the format: (x1,y1), (x2,y2), (x3,y3) and
             no additional text""",
         )
         self.messages = []
@@ -46,7 +46,7 @@ class RandomMovingPoints:
         return coords
 
     def run(self):
-        """Main loop for the game."""
+        
         while self.running:
             # Fill the background
             self.win.fill(self.BLACK)

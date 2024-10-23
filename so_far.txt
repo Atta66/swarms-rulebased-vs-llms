@@ -1,0 +1,7 @@
+model selection:
+
+GPT api costs $0.04 per prompt
+
+Looking into other models, llama 3.2 1B instruct does not perform so well but it is light-weight - 1.32 GB
+
+Tqen2.5 14B - specializes in instructions - 8.99 GB
