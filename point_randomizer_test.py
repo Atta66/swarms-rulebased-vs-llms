@@ -16,10 +16,16 @@ while True:
     response = client.run(agent=my_agent, messages=messages)
     messages = response.messages
     last_message = messages[-1]
-    # print(messages)
-    print(last_message['content'])
-    # response = "10 20"
-    # x, y = map(int, last_message['content'].split())
+    if last_message["content"] is None:
+            continue
+    else:  
+        # print(messages)
+        print(last_message['content'])
+        # response = "10 20"
+        # x, y = map(int, last_message['content'].split())
 
-    # print(x,y)
-    time.sleep(4)
+        # print(x,y)
+        messages = []
+        last_message = []
+        time.sleep(2)
+        

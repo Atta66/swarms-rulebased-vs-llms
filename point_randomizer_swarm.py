@@ -1,83 +1,125 @@
 import pygame
-import random
 import time
 from swarm import Swarm, Agent
+import re
+
+class RandomMovingPoints:
+    def __init__(self, width=600, height=400, point_size=5, num_points=3):
+        # Initialize pygame
+        pygame.init()
+        self.client = Swarm()
+        self.width = width
+        self.height = height
+        self.point_size = point_size
+        self.num_points = num_points  # Number of points to draw
+        self.win = pygame.display.set_mode((self.width, self.height))
+        pygame.display.set_caption("Random Moving Points")
+
+        # Define colors
+        self.BLACK = (0, 0, 0)
+        self.POINT_COLOR = (255, 0, 0)  # Red points
+
+        # Set up agent with instructions for 3 points
+        self.agent = Agent(
+            name="Agent",
+            instructions=f"""respond with {self.num_points} pairs of x and y coordinates.
+            x should be between 0 and {self.width - 1} and y should be between 0 and {self.height - 1}.
+            Just write the coordinates as space-separated pairs, do not write anything other than the coordinates.
+            do not use brackets and commas, the format should be exactly in the format (x1,y1), (x2,y2), (x3,y3) and
+            no additional text""",
+        )
+        self.messages = []
+
+        # Initialize pygame clock for frame rate control
+        self.clock = pygame.time.Clock()
+        self.running = True
+
+    def draw_point(self, x, y):
+        """Draw a point at the given coordinates."""
+        pygame.draw.circle(self.win, self.POINT_COLOR, (x, y), self.point_size)
+
+    def parse_coordinates(self, coord_string):
+        # Use regex to extract all numbers inside parentheses
+        coord_pairs = re.findall(r"\((\d+),(\d+)\)", coord_string)
+        # Convert the pairs from strings to integers
+        coords = [(int(x), int(y)) for x, y in coord_pairs]
+        return coords
+
+    def run(self):
+        """Main loop for the game."""
+        while self.running:
+            # Fill the background
+            self.win.fill(self.BLACK)
+
+            # Get response from the agent
+            response = self.client.run(agent=self.agent, messages=self.messages)
+            self.messages = response.messages
+            last_message = self.messages[-1]
+
+            # sometimes there is no content
+            if last_message["content"] is not None:
+                print(last_message["content"])
+                try:
+                    # Parse coordinates to get x1, y1, x2, y2, x3, y3
+                    coords = self.parse_coordinates(last_message["content"])
+
+                    # Draw each point or skip if out of range
+                    for x, y in coords:
+                        # Check if coordinates are out of range
+                        if 0 <= x < 600 and 0 <= y < 400:
+                            self.draw_point(x, y)
+                            print(f"Point drawn at ({x}, {y})")
+                        else:
+                            print(f"Wrong coordinate values: ({x}, {y}) out of range")
+
+                except ValueError:
+                    print("Received invalid coordinates. Ignoring this response.")
 
 
-# Initialize pygame
-pygame.init()
-client = Swarm()
-messages = []
+                # Update the display
+                pygame.display.update()
 
-my_agent = Agent(
-    name="Agent",
-    instructions="""respond with x and y coordinates.
-    x should be between 0 to 600 and y should be between 0 and 399.
-    Just write the two numbers with a space in between. 
-    The response should not have anything else written.""",
-)
+                # Wait for 1 second before generating a new position
+                time.sleep(1)
 
-# Set up display
-width, height = 600, 400  # Grid size
-win = pygame.display.set_mode((width, height))
-pygame.display.set_caption("Random Moving Point")
+                # Reset messages for the next iteration
+                self.messages = []
+            
+            # if last_message["content"] is not None:
+            #     # Expecting a space-separated string with x1 y1 x2 y2 x3 y3
+            #     print(last_message["content"])
+                # coords = list(map(int, last_message['content'].split()))
 
-# Define colors
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-POINT_COLOR = (255, 0, 0)  # Red point
+                # # Draw each point (3 points in this case)
+                # for i in range(0, len(coords), 2):
+                #     x, y = coords[i], coords[i + 1]
+                #     self.draw_point(x, y)
 
-# Set the size of the point (for visibility)
-point_size = 5
-agent = my_agent
-# Clock for controlling the frame rate
-clock = pygame.time.Clock()
+                # # Update the display
+                # pygame.display.update()
 
-# Main loop control
-running = True
+                # # Wait for 1 second before generating a new position
+                # time.sleep(1)
 
-# Function to draw the point
-def draw_point(x, y):
-    pygame.draw.circle(win, POINT_COLOR, (x, y), point_size)
+                # # Reset messages for the next iteration
+                # self.messages = []
+            else:
+                "invalid or no coordinates"
+                continue
 
-# Main loop
-while running:
-    # Fill the background
-    win.fill(BLACK)
+            # Check for quit events
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
 
-    response = client.run(agent=my_agent, messages=messages)
-    messages = response.messages
-    last_message = messages[-1]
-    time.sleep(2)
-    
-    # response = "10 20"
-    x, y = map(int, last_message['content'].split())
+            # Control the frame rate
+            self.clock.tick(60)
 
-    print(x,y)
+        # Quit pygame when the loop finishes
+        pygame.quit()
 
-    # Generate random coordinates for the point
-    # point_x = random.randint(0, width - 1)
-    point_x = x
 
-    # point_y = random.randint(0, height - 1)
-    point_y = y
-
-    # Draw the point at the random position
-    draw_point(point_x, point_y)
-
-    # Update the display
-    pygame.display.update()
-
-    # Wait for 1 second before generating a new random position
-    time.sleep(2)
-
-    # Check for quit events
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-
-    # Control the frame rate (not needed much here, but useful)
-    clock.tick(60)
-
-# Quit pygame
-pygame.quit()
+# Create an instance of the game and run it
+if __name__ == "__main__":
+    game = RandomMovingPoints()
+    game.run()
