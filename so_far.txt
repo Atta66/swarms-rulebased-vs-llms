@@ -8,3 +8,8 @@ Tqwen2.5 14B - specializes in instructions - 8.99 GB - quite slow relatively but
 
 
 set up models on the simulation server
+ - install LM Studio
+ - install models
+ - install caddy for ip-proxy (change local to 0.0.0.0)
+ - run caddy: ./caddy_linux_amd64 reverse-proxy --from :12345 --to 127.0.0.1:1234
+ - change core.py in swarm python lib so it connects to our server instead of chatgpt (remember 12345 for the changed port)
