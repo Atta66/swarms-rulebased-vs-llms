@@ -8,7 +8,7 @@ class SwarmManager:
         # Create agents with specific instructions
         self.agent1 = Agent(
             name="Agent 1",
-            instructions="respond with a number from 0 to 20",
+            instructions="respond with a number from 20 to 50",
         )
         
         self.agent2 = Agent(
