@@ -13,6 +13,7 @@ class RandomMovingPoints:
         self.point_size = point_size
         self.num_points = num_points  # Number of points to draw
         self.win = pygame.display.set_mode((self.width, self.height))
+        self.xincrement = []
         pygame.display.set_caption("Random Moving Points")
 
         # Define colors
@@ -20,14 +21,21 @@ class RandomMovingPoints:
         self.POINT_COLOR = (255, 0, 0)  # Red points
 
         # Set up agent with instructions for 3 points
-        self.agent = Agent(
-            name="Agent",
+        self.agent1 = Agent(
+            name="Agent1",
             instructions=f"""respond with {self.num_points} pairs of x and y coordinates.
             x should be between 0 and {self.width - 1} and y should be between 0 and {self.height - 1}.
             Just write the coordinates as space-separated pairs, do not write anything other than the coordinates.
             do not use brackets and commas, the format should be exactly in the format: (x1,y1), (x2,y2), (x3,y3) and
-            no additional text""",
+            no additional text.""",
         )
+
+        self.agent2 = Agent(
+            name="Agent2",
+            instructions=f"""increment all the points in {self.increment} """,
+        )
+
+
         self.messages = []
 
         # Initialize pygame clock for frame rate control
@@ -52,7 +60,7 @@ class RandomMovingPoints:
             self.win.fill(self.BLACK)
 
             # Get response from the agent
-            response = self.client.run(agent=self.agent, messages=self.messages)
+            response = self.client.run(agent=self.agent1, messages=self.messages)
             self.messages = response.messages
             last_message = self.messages[-1]
 
