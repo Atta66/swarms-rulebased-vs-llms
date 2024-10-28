@@ -8,17 +8,17 @@ class SwarmManager:
         # Create agents with specific instructions
         self.agent1 = Agent(
             name="Agent 1",
-            instructions="respond with a number from 20 to 50",
+            instructions="respond in a very horror way and mention the name elisabeth, mention the name elisabeth",
         )
         
         self.agent2 = Agent(
             name="Agent 2",
-            instructions="respond with a number from 10 to 20",
+            instructions="respond in a horrific way possible",
         )
         
         self.agent3 = Agent(
             name="Agent 3",
-            instructions="check if the numbers from Agent 1 and Agent 2 match",
+            instructions="respond furiously and angry to the question",
         )
 
         self.messages = []
@@ -31,38 +31,49 @@ class SwarmManager:
 
     def run_agents(self):
         # Initialize messages for interaction
-        self.messages.append({"role": "user", "content": "num"})
+        # self.messages.append({"role": "user", "content": "num"})
+        messages = []
+        user_input = input("> ")
+        messages.append({"role": "user", "content": user_input})
 
         # Run Agent 1
-        response = self.client.run(agent=self.agent1, messages=self.messages)
+        response = self.client.run(agent=self.agent1, messages=messages)
         self.messages = response.messages
         self.agent1 = response.agent
 
         for message in self.messages:
             if 'content' in message:
-                generated_number1 = int(message['content'])  # Agent 1's number
-                print("Agent 1 generated:", generated_number1)
+                # generated_number1 = int(message['content'])  # Agent 1's number
+                print("Mr Horror's response:", message['content'])
+
+        messages = []
+        user_input = input("> ")
+        messages.append({"role": "user", "content": user_input})
 
         # Run Agent 2
-        self.messages.append({"role": "user", "content": "num"})
+        # self.messages.append({"role": "user", "content": "num"})
         response = self.client.run(agent=self.agent2, messages=self.messages)
         self.messages = response.messages
         self.agent2 = response.agent
 
         for message in self.messages:
             if 'content' in message:
-                generated_number2 = int(message['content'])  # Agent 2's number
-                print("Agent 2 generated:", generated_number2)
+                # generated_number2 = int(message['content'])  # Agent 2's number
+                print("Mr Horror's response:", message['content'])
+
+        messages = []
+        user_input = input("> ")
+        messages.append({"role": "user", "content": user_input})
 
         # Run Agent 3 to check if numbers match
-        self.messages.append({"role": "user", "content": f"Check if {generated_number1} matches {generated_number2}"})
+        # self.messages.append({"role": "user", "content": f"Check if {generated_number1} matches {generated_number2}"})
         response = self.client.run(agent=self.agent3, messages=self.messages)
         self.messages = response.messages
         self.agent3 = response.agent
 
         for message in self.messages:
             if 'content' in message:
-                print("Agent 3 response:", message['content'])
+                print("Mr. Horror's response:", message['content'])
 
         # Print all messages for clarity
         # self.pretty_print_messages(self.messages)
