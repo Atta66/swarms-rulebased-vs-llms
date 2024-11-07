@@ -4,7 +4,9 @@ GPT api costs $0.04 per prompt
 
 Looking into other models, llama 3.2 1B instruct does not perform so well but it is light-weight - 1.32 GB
 
-Tqwen2.5 14B - specializes in instructions - 8.99 GB - quite slow relatively but perfect result
+Tqwen2.5 14B - specializes in instructions - 8.99 GB - quite slow relatively but good result
+
+Llama 3.2 3B seems to perform well.
 
 
 set up models on the simulation server
@@ -16,3 +18,39 @@ set up models on the simulation server
 
 
  agent3 was required because mulitple instructions in the prompt were creating something like the screenshot
+
+ agent 1 randomly gets 3 points, agent 2 incremets the x coordinate and agent 3 sees if any of the coordinates is greater than 300, and outputs 0
+
+
+
+ LLM with RAG
+
+Isn't the retrieval component also making use of pre-existing knowledge?
+
+
+Yes, you're absolutely right—the retrieval component also relies on pre-existing knowledge,
+but it accesses a targeted subset of knowledge stored in external documents or databases,
+which can be more detailed, specific, or up-to-date than what the model itself knows.
+
+In other words, while the language model is trained on a broad range of general information,
+the retrieval system pulls in precise, focused information that directly answers the user’s
+question. This extra step can make the response richer and more aligned with current knowledge,
+even though it’s still based on pre-existing information within the documents it retrieves.
+
+Explored FAISS but it would make things slower:
+The supported way to install Faiss is through conda. Stable releases are pushed regularly to the pytorch conda channel, as well as pre-release nightly builds.
+
+The CPU-only faiss-cpu conda package is currently available on Linux (x86-64 and aarch64), OSX (arm64 only), and Windows (x86-64)
+faiss-gpu, containing both CPU and GPU indices, is available on Linux (x86-64 only) for CUDA 11.4 and 12.1
+faiss-gpu-raft containing both CPU and GPU indices provided by NVIDIA RAFT, is available on Linux (x86-64 only) for CUDA 11.8 and 12.1.
+
+
+I used chatgpt to create the prompts and this is much better and concise. Same or better resutls found.
+
+everything depends on models a lot, one prompt will give you perfect response using one model, the same prompt will give you different for another model.
+
+the problem so far is that when there are multiple coordinates in array, some issue arises, icrement x but it incremets both x,y, add addtional cooridnates... what if we do it one
+by one? how will it perform with the lightest Llama: 1B?
+
+Llama 1B -> Increase the x value in (12454,213332) by 20 and output the result in the exact same format as the input. Do not add any additional text.
+Answer: 12674, 13332

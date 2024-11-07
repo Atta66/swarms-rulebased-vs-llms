@@ -24,11 +24,9 @@ class RandomMovingPoints:
         # Set up agent with instructions for 3 points
         self.agent1 = Agent(
             name="Agent1",
-            instructions=f"""respond with {self.num_points} pairs of x and y coordinates.
-            x should be between 0 and {self.width - 1} and y should be between 0 and {self.height - 1}.
-            Just write the coordinates as space-separated pairs, do not write anything other than the coordinates.
-            do not use brackets and commas, the format should be exactly in the format: (x1,y1), (x2,y2), (x3,y3) and
-            no additional text.""",
+            instructions=f"""Generate exactly {self.num_points} pairs of (x, y) coordinates in this format: 
+            (x1,y1), (x2,y2), (x3,y3). For each pair, x should be between 0 and {self.width - 1}, and y 
+            should be between 0 and {self.height - 1}. Provide only the coordinates, with no additional text.""",
         )
 
 
@@ -53,9 +51,9 @@ class RandomMovingPoints:
 
     def parse_coordinates(self, coord_string):
         # Use regex to extract numbers with or without surrounding brackets
-        print("coord_string", coord_string)
+        # print("coord_string", coord_string)
         coord_pairs = re.findall(r"[\[\(]?(\d+),\s*(\d+)[\]\)]?", coord_string)
-        print("coord_pairs", coord_pairs)
+        # print("coord_pairs", coord_pairs)
         # Convert the pairs from strings to integers
         coords = [(int(x), int(y)) for x, y in coord_pairs]
         return coords
@@ -77,14 +75,15 @@ class RandomMovingPoints:
     def run_agent2(self, coordinates):
         """Run Agent2 in the loop to increment the coordinates."""
         # coord_string = ', '.join([f"({x},{y})" for x, y in self.coordinates])
-        print("i am here", coordinates)
+        print("i am here: ", coordinates)
         agent2 = Agent(
             name="Agent2",
-            instructions=f"""increment the x in {coordinates} by 20 and output in the same format as the input, there should not be any additional text""",
+            instructions=f"""Increase each x value in {coordinates} by 20 and output
+            the result in the exact same format as the input. Do not add any additional text.""",
         )
         response = self.client.run(agent=agent2, messages=self.messages)
         last_message = response.messages[-1]
-        print("last_message:", last_message)
+        print("last_message: ", last_message)
 
         if last_message["content"] is not None:
             print("Agent2 response:", last_message["content"])
@@ -96,11 +95,13 @@ class RandomMovingPoints:
 
         agent3 = Agent(
             name="Agent3",
-            instructions=f"""if any value in {coordinates} is greater than 300, make it 0 and output the updated list in the same format as the input, no additional text""",
+            instructions=f"""Update only the y values in {coordinates} that are greater than 300 by 
+            setting them to 0. Return the result in the same format as {coordinates}, with no extra 
+            text and keeping the same number of coordinate pairs as in the input.""",
         )
         response = self.client.run(agent=agent3, messages=self.messages)
         last_message = response.messages[-1]
-        coordinates = self.parse_coordinates(last_message["content"])
+        # coordinates = self.parse_coordinates(last_message["content"])
 
         coordinates = self.run_agent2(coordinates)
 
