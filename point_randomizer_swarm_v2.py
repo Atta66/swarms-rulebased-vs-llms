@@ -47,6 +47,16 @@ class RandomMovingPoints:
         # Convert the pairs from strings to integers
         coords = [(int(x), int(y)) for x, y in coord_pairs]
         return coords
+    
+    def parse_x_coordinate(self, content):
+        # Custom method to parse the x value from the response content (expected format: "(x, y)")
+        try:
+            # Extract x from "(x, y)" format
+            updated_x = int(content.split(",")[0].strip("()"))  # Assumes x is in the format "(x"
+            return updated_x
+        except ValueError:
+            # Handle cases where parsing might fail (e.g., incorrect format)
+            return None
 
     def run_agent1(self):
         """Run Agent1 once to get the initial coordinates."""
@@ -70,10 +80,13 @@ class RandomMovingPoints:
 
         for x, y in coordinates:
             coord_string = f"({x},{y})"
+
+            print("coord_string give: ", coord_string)
             
             agent2 = Agent(
                 name="Agent2",
-                instructions=f"Increase the x value in {coord_string} by 20 and output the result in the exact same format as the input. Do not add any additional text.",
+                instructions=f"""Increase the x value in {coord_string} by 20 and output the result in the exact same format as the input. Do not add any additional text.
+                for example, if i have (20, 30), it will become (40, 30).""",
             )
             
             response = self.client.run(agent=agent2, messages=self.messages)
@@ -87,18 +100,79 @@ class RandomMovingPoints:
         return updated_coordinates
 
     # def run_agent3(self, coordinates):
-    #     agent3 = Agent(
+
+    #     updated_coordinates = []
+
+    #     for x, y in coordinates:
+    #         coord_string = f"({x},{y})"
+
+    #         # updated_coordinate = coord_string
+    #         # updated_coordinates.extend(updated_coordinate)  # Add each updated pair to the final list
+            
+    #         agent3 = Agent(
     #         name="Agent3",
-    #         instructions=f"""Update only the y values in {coordinates} that are greater than 300 by 
-    #         setting them to 0. Return the result in the same format as {coordinates}, with no extra 
-    #         text and keeping the same number of coordinate pairs as in the input.""",
-    #     )
-    #     response = self.client.run(agent=agent3, messages=self.messages)
-    #     last_message = response.messages[-1]
+    #         instructions=f"""Check if the x-coordinate in the pair (x, y) is greater than 300. If x is less than or equal to 300, keep (x, y) the same.  
+    #         Otherwise, change x to 0. Just output the result in the format (x, y) without any extra text. My pair is {coord_string}.""",
+    #         )
+            
+    #         response = self.client.run(agent=agent3, messages=self.messages)
+    #         last_message = response.messages[-1]
 
-    #     coordinates = self.run_agent2(coordinates)
+    #         if last_message["content"] is not None:
+    #             print("Agent3 response:", last_message["content"])
+    #             updated_coordinate = self.parse_coordinates(last_message["content"])
+    #             updated_coordinates.extend(updated_coordinate)  # Add each updated pair to the final list
+        
+    #     # updated_coordinates = self.run_agent2(updated_coordinates)
+    #     print("the updated coordinates are: ", updated_coordinates)
+    #     return updated_coordinates
+    
 
-    #     return coordinates
+    def run_agent3(self, coordinates):
+        updated_coordinates = []
+
+        for x, y in coordinates:
+            coord_string = f"{x}"  # Only include x in the coord_string
+            print("IIIIIIIIIIIIIIIIIIIIIIIIIIIIII: ", coord_string)
+
+            agent3 = Agent(
+                name="Agent3",
+                instructions=f"""if {coord_string} is greater than 300, output 0, if it is not true, output {coord_string}""",
+            )
+            
+            # Run the agent and get the response
+            response = self.client.run(agent=agent3, messages=self.messages)
+            last_message = response.messages[-1]
+
+            # Parse the agent's response
+            if last_message["content"] is not None:
+                print("Agent3 response:", last_message["content"])
+                
+                # Parse the x value from the agent's response
+                updated_x = self.parse_x_coordinate(last_message["content"])  # Adjust parse method as needed
+                
+                # Keep the original y value and update only x
+                updated_coordinate = (updated_x, y)
+                updated_coordinates.append(updated_coordinate)  # Add each updated pair to the final list
+
+        print("The updated coordinates are:", updated_coordinates)
+        return updated_coordinates
+
+    
+
+
+        # agent3 = Agent(
+        #     name="Agent3",
+        #     instructions=f"""Check if the x-coordinate in each of the (x, y) pairs is greater than 300. If x is less than or equal to 300, keep (x, y) the same. 
+        #     Otherwise, change x to 0. Output the result in the format (x, y) without any extra text. My pairs are {coordinates}""",
+        # )
+        # response = self.client.run(agent=agent3, messages=self.messages)
+        # last_message = response.messages[-1]
+        # coordinates = self.parse_coordinates(last_message["content"])
+
+        # coordinates = self.run_agent2(coordinates)
+
+        # return coordinates
 
     def run(self):
         coordinates = []
@@ -112,7 +186,7 @@ class RandomMovingPoints:
                 coordinates = self.run_agent1()
                 self.initial_step += 1
             else:
-                coordinates = self.run_agent2(coordinates)
+                coordinates = self.run_agent3(coordinates)
 
             for x, y in coordinates:
                 if 0 <= x < self.width and 0 <= y < self.height:

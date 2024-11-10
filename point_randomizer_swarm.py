@@ -78,8 +78,8 @@ class RandomMovingPoints:
         print("i am here: ", coordinates)
         agent2 = Agent(
             name="Agent2",
-            instructions=f"""Increase each x value in {coordinates} by 20 and output
-            the result in the exact same format as the input. Do not add any additional text.""",
+            instructions=f"""Update only the first coordinate of {coordinates} to be 20 more than its current value.
+            do not update both x and y, only update x.""",
         )
         response = self.client.run(agent=agent2, messages=self.messages)
         last_message = response.messages[-1]

@@ -54,3 +54,24 @@ by one? how will it perform with the lightest Llama: 1B?
 
 Llama 1B -> Increase the x value in (12454,213332) by 20 and output the result in the exact same format as the input. Do not add any additional text.
 Answer: 12674, 13332
+
+we have a problem with big values so can't really use this model.
+
+when i access the same prompt through api, i get different answer than when i use the chat in lm studio.[1] for example: 
+"Increase the x value in {coord_string} by 20 and output the result in the exact same format as the input. Do not add any additional text." will give me different answers unless I add
+"for example, if i have (20, 30), it will become (40, 30)."
+
+there are some models which are trained with existing llm models along with math solving. I used 1b and 3b Llama customly built. The results were as i specified in [1].
+
+qwen2.5 instruct math is my next model to try -> gibberish -> https://qwenlm.github.io/blog/qwen2.5/
+
+i asked sloth to write the prompt for itself and it worked: Check if the x-coordinate in the pair (x, y) is greater than 300. If x is less than or equal to 300, keep (x, y) the same. Otherwise, change x to 0. Output the result in the format (x, y) without any extra text. My pair is (10, 300).
+
+
+BECAUSE EVERY CHAT IS DIFFERENT INSTANCE
+//////////////different answers: Check if the x-coordinate in the pair (x, y) is greater than 300. If x is less than or equal to 300, keep (x, y) the same. 
+///////////////Otherwise, change x to 0. Output the result in the format (x, y) without any extra text. My pair is {coord_string}.
+
+
+the following doesn't work after multiple changes to prompt so waht we can do is only take into consideration the x: Check if the x-coordinate in the pair (x, y) is greater than 300. If x is less than or equal to 300, keep (x, y) the same.  
+            Otherwise, change x to 0. Just output the result in the format (x, y) without any extra text. My pair is {coord_string}
