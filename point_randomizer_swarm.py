@@ -4,7 +4,7 @@ from swarm import Swarm, Agent
 import re
 
 class RandomMovingPoints:
-    def __init__(self, width=600, height=400, point_size=5, num_points=3):
+    def __init__(self, width=600, height=400, point_size=5, num_points=20):
         # Initialize pygame
         pygame.init()
         self.client = Swarm()
@@ -78,8 +78,8 @@ class RandomMovingPoints:
         print("i am here: ", coordinates)
         agent2 = Agent(
             name="Agent2",
-            instructions=f"""Update only the first coordinate of {coordinates} to be 20 more than its current value.
-            do not update both x and y, only update x.""",
+            instructions=f"""Update only the x coordinate of {coordinates} to be 20 more than its current value.
+            do not update both x and y, only update x. Just ouput in the same format as the input with no additional text""",
         )
         response = self.client.run(agent=agent2, messages=self.messages)
         last_message = response.messages[-1]
@@ -101,7 +101,7 @@ class RandomMovingPoints:
         )
         response = self.client.run(agent=agent3, messages=self.messages)
         last_message = response.messages[-1]
-        # coordinates = self.parse_coordinates(last_message["content"])
+        coordinates = self.parse_coordinates(last_message["content"])
 
         coordinates = self.run_agent2(coordinates)
 
