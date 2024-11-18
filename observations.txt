@@ -14,10 +14,9 @@ PRS Output to JSON - what is written:
 Agent Workflow:  
   - Agents output the coordinates.  
   - These coordinates are saved in real-time to `config.json`.  
-  - Saved coordinates are used by the next agent.  
+  - Saved coordinates are used by the next agent.
 
 =================================  
-
 =================================  
              Agents  
 =================================  
@@ -36,10 +35,51 @@ Agent 3:
 
 Agent 4:  
   - Checks each point in the coordinates array against all other points:  
-    - If any two points are within a certain radius, move the point by **-50 in x**.  
+    - If any two points are within a certain radius, move the point by **-50 in x**.
 
 =================================  
+=================================  
+           Workflow  
+=================================  
 
+         +------------+  
+         |  Agent 1   |  
+         | (Initial   |  
+         |  Points)   |  
+         +------------+  
+                |  
+                v  
+     +-------------------+  
+     |    Agent 2        |  
+     | (Increment x, y)  |  
+     +-------------------+  
+                |  
+                v  
+     +-------------------+  
+     |    Agent 3        |  
+     | (Reset if out of  |  
+     |  bounds)          |  
+     +-------------------+  
+                |  
+                v  
+     +-------------------+  
+     |    Agent 4        |  
+     | (Check & adjust   |  
+     |  radius)          |  
+     +-------------------+  
+                |  
+                v  
+     +---------------------+  
+     | Repeat Agents 2, 3, |  
+     | and 4 in sequence   |  
+     +---------------------+  
+                ^  
+                |  
+                |  
+         (Cycle continues  
+          iteratively)
+
+=================================  
 =================================  
            Observations  
 =================================  
@@ -86,7 +126,6 @@ for i, p1 in enumerate(points):
 Using the function works better than using the prompt.
 
 =================================
-
 =================================  
            Improvement  
 =================================
