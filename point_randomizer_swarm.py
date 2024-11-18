@@ -9,7 +9,8 @@ import os
 class RandomMovingPoints:
     def __init__(self, config_file="config.json"):
 
-        base_path = "C:\\Users\\Atta\\Desktop\\workspace\\ACES\\swarm_ai\\ACES"
+        # base_path = "C:\\Users\\Atta\\Desktop\\workspace\\ACES\\swarm_ai\\ACES"
+        base_path = "C:\\Users\\attah\\OneDrive\\Desktop\\workspace\\ACES\\swarm_openai\\ACES"
         config_path = os.path.join(base_path, "config", config_file)
 
         self.load_config(config_path)
@@ -69,7 +70,8 @@ class RandomMovingPoints:
         """Update and save coordinates back to the config file."""
         self.config["coordinates"] = coordinates  # Update the 'coordinates' key in the config
 
-        base_path = "C:\\Users\\Atta\\Desktop\\workspace\\ACES\\swarm_ai\\ACES"
+        # base_path = "C:\\Users\\Atta\\Desktop\\workspace\\ACES\\swarm_ai\\ACES"
+        base_path = "C:\\Users\\attah\\OneDrive\\Desktop\\workspace\\ACES\\swarm_openai\\ACES"
         config_path = os.path.join(base_path, "config", "config.json")
 
         with open(config_path, 'w') as f:
@@ -176,7 +178,7 @@ class RandomMovingPoints:
         pygame.display.update()
 
         # Wait for 1 second before generating a new position
-        time.sleep(2.0)
+        # time.sleep()
 
     def run(self):
         coordinates = []

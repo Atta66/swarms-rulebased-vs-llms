@@ -1,14 +1,66 @@
-coordinates will give you as many coordinates that you generate in json file
+=================================  
+            Structure  
+=================================  
 
-"For each coordinate in {coordinates}, check if any other 
-coordinate is within a radius of {radius}. If the distance 
-between two points is smaller than the radius, adjust the 
-x-coordinate of the first point by moving it -50 units.
-Return the updated coordinates in the same format as the input, 
-with no additional text."
+JSON Input to PRS - what is read:  
+  - Grid Size  
+  - Number of Points  
+  - Agent Prompts that use coordinates  
+  - Background and Point Colors  
 
-what this does:
+PRS Output to JSON - what is written:  
+  - Coordinates  
 
+Agent Workflow:  
+  - Agents output the coordinates.  
+  - These coordinates are saved in real-time to `config.json`.  
+  - Saved coordinates are used by the next agent.  
+
+=================================  
+
+=================================  
+             Agents  
+=================================  
+
+Agent 1:  
+  - Generates a specified number of points within the boundaries of the grid.  
+
+Agent 2:  
+  - Increments `x` and `y` for each point in the coordinates array:  
+    - `x` is incremented by a random value between **15 and 30**.  
+    - `y` is incremented by a random value between **30 and 50**.  
+
+Agent 3:  
+  - Resets `x` to **0** if it exceeds **500**.  
+  - Resets `y` to **0** if it exceeds **300**.  
+
+Agent 4:  
+  - Checks each point in the coordinates array against all other points:  
+    - If any two points are within a certain radius, move the point by **-50 in x**.  
+
+=================================  
+
+=================================  
+           Observations  
+=================================  
+
+Agent 1:  
+  - Performs as expected.  
+
+Agent 2:  
+  - Does not work as intended:  
+    - A single random increment value is selected and applied to **all points** instead of generating a unique increment for each point.  
+
+Agent 3:  
+  - Performs as expected.  
+
+Agent 4:  
+  - Partially works:  
+    - Some points are adjusted as expected, but others are not.  
+    - ChatGPT provided the following function, which is **not fully correct** for the intended behavior:  
+
+### Provided Function
+```python
 # Define the list of points
 points = [(47, 331), (247, 380), (162, 105), (137, 370), (44, 270)]
 radius = 30
@@ -31,8 +83,17 @@ for i, p1 in enumerate(points):
     else:
         adjusted_points.append(p1)
 
-for each point, this will be better. more details.
+Using the function works better than using the prompt.
 
-all coordinates increment the same amount. I tried to change the prompt many times. Has to be done for each point.
+=================================
 
-Biggest observation, when it is a swarm: a lot of points, either unpredictable, or everything treated as the same. 
+=================================  
+           Improvement  
+=================================
+
+Agents 2 and 4:
+  - The issue arises because the prompt processes all points together.
+  - **Potential Fix:** If the prompt handled each point separately, the logic would work as intended.
+    - **Drawback:** This approach would require processing a large number of prompts, making it inefficient.
+
+=================================
