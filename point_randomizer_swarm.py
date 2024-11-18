@@ -23,13 +23,7 @@ class RandomMovingPoints:
 
         # Define colors
         self.BACKGROUND = tuple(self.config["colors"]["WHITE"])
-        self.POINT_COLOR = tuple(self.config["colors"]["BLUE"])  
-
-        # Set up agent with instructions for 3 points
-        self.agent1 = Agent(
-            name=self.agent1_config["name"],
-            instructions=self.agent1_config["instructions"]
-        )
+        self.POINT_COLOR = tuple(self.config["colors"]["BLUE"])
 
         self.messages = []
 
@@ -51,6 +45,7 @@ class RandomMovingPoints:
                 self.agent1_config = self.config["agent1"]
                 self.agent2_config = self.config["agent2"]
                 self.agent3_config = self.config["agent3"]
+                self.agent4_config = self.config["agent4"]
         
         except FileNotFoundError:
             print(f"Config file {config_file} not found.")
@@ -70,25 +65,53 @@ class RandomMovingPoints:
         coords = [(int(x), int(y)) for x, y in coord_pairs]
         return coords
 
+    def save_coordinates_to_config(self, coordinates):
+        """Update and save coordinates back to the config file."""
+        self.config["coordinates"] = coordinates  # Update the 'coordinates' key in the config
+
+        base_path = "C:\\Users\\Atta\\Desktop\\workspace\\ACES\\swarm_ai\\ACES"
+        config_path = os.path.join(base_path, "config", "config.json")
+
+        with open(config_path, 'w') as f:
+            json.dump(self.config, f, indent=4)  # Write the updated config back to the file
+
     def run_agent1(self):
         """Run Agent1 once to get the initial coordinates."""
-        response = self.client.run(agent=self.agent1, messages=self.messages)
-        self.messages = response.messages
-        last_message = self.messages[-1]
+
+        # Get the instructions and replace placeholders with the actual values
+        instructions = self.agent1_config["instructions"]
+        instructions = instructions.format(num_points=self.num_points, width=self.width, height=self.height)
+
+        agent1 = Agent(
+            name=self.agent1_config["name"],
+            instructions=instructions
+        )
+
+        response = self.client.run(agent=agent1, messages=self.messages)
+        # self.messages = response.messages
+        last_message = response.messages[-1]
 
         if last_message["content"] is not None:
             coordinates = self.parse_coordinates(last_message["content"])
         else:
             print("Invalid response from Agent1")
         print("generated coordinates (agent1): ", coordinates)
+
+        self.save_coordinates_to_config(coordinates)
         return coordinates
 
     def run_agent2(self, coordinates):
         """Run Agent2 in the loop to increment the coordinates."""
+
+        # Get the instructions and replace placeholders with the actual values
+        instructions = self.agent2_config["instructions"]
+        instructions = instructions.format(coordinates=coordinates)
+
         agent2 = Agent(
             name=self.agent2_config["name"],
-            instructions=self.agent2_config["instructions"]
+            instructions=instructions
         )
+
         response = self.client.run(agent=agent2, messages=self.messages)
         last_message = response.messages[-1]
 
@@ -99,10 +122,15 @@ class RandomMovingPoints:
 
     def run_agent3(self, coordinates):
         """Update y values greater than 300 to 0."""
+
+        instructions = self.agent3_config["instructions"]
+        instructions = instructions.format(coordinates=coordinates)
+
         agent3 = Agent(
             name=self.agent3_config["name"],
-            instructions=self.agent3_config["instructions"]
+            instructions=instructions
         )
+
         response = self.client.run(agent=agent3, messages=self.messages)
         last_message = response.messages[-1]
         coordinates = self.parse_coordinates(last_message["content"])
@@ -112,9 +140,13 @@ class RandomMovingPoints:
     def run_agent4(self, coordinates):
         """Use Agent4 to check each point's radius and move in the -x direction if another point is inside its radius."""
         # Create the agent with the appropriate instructions for checking distances
+        
+        instructions = self.agent4_config["instructions"]
+        instructions = instructions.format(coordinates=coordinates, radius=self.radius)
+
         agent4 = Agent(
-            name=self.agent3_config["name"],
-            instructions=self.agent3_config["instructions"],
+            name=self.agent4_config["name"],
+            instructions=instructions
         )
         
         # Call the agent with the given instructions
@@ -144,7 +176,7 @@ class RandomMovingPoints:
         pygame.display.update()
 
         # Wait for 1 second before generating a new position
-        time.sleep(0.5)
+        time.sleep(2.0)
 
     def run(self):
         coordinates = []
@@ -160,15 +192,16 @@ class RandomMovingPoints:
                 self.draw_and_update_points(coordinates)
             else:
                 # Get response from agent 3 (including agent 2 steps)
-                coordinates = self.run_agent3(coordinates)
+                coordinates = self.run_agent2(coordinates)
                 self.draw_and_update_points(coordinates)
 
-                coordinates = self.run_agent2(coordinates)
+                coordinates = self.run_agent3(coordinates)
                 self.draw_and_update_points(coordinates)
 
                 # Run Agent4 to check if points are within radius of each other
                 coordinates = self.run_agent4(coordinates)
                 self.draw_and_update_points(coordinates)
+                # break
 
             # Reset messages for the next iteration
             self.messages = []

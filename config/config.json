@@ -2,29 +2,131 @@
     "width": 600,
     "height": 400,
     "point_size": 5,
-    "num_points": 5,
-    "radius": 400,
+    "num_points": 20,
+    "radius": 40,
+    "coordinates": [
+        [
+            45,
+            105
+        ],
+        [
+            230,
+            350
+        ],
+        [
+            489,
+            50
+        ],
+        [
+            374,
+            290
+        ],
+        [
+            112,
+            365
+        ],
+        [
+            578,
+            120
+        ],
+        [
+            321,
+            240
+        ],
+        [
+            90,
+            35
+        ],
+        [
+            600,
+            391
+        ],
+        [
+            15,
+            180
+        ],
+        [
+            432,
+            77
+        ],
+        [
+            210,
+            315
+        ],
+        [
+            389,
+            205
+        ],
+        [
+            157,
+            344
+        ],
+        [
+            590,
+            60
+        ],
+        [
+            275,
+            289
+        ],
+        [
+            493,
+            112
+        ],
+        [
+            120,
+            398
+        ],
+        [
+            349,
+            255
+        ],
+        [
+            578,
+            89
+        ]
+    ],
     "colors": {
-        "BLACK": [0, 0, 0],
-        "RED": [255, 0, 0],
-        "GREEN": [0, 255, 0],
-        "BLUE": [0, 0, 255],
-        "WHITE": [255, 255, 255]
+        "BLACK": [
+            0,
+            0,
+            0
+        ],
+        "RED": [
+            255,
+            0,
+            0
+        ],
+        "GREEN": [
+            0,
+            255,
+            0
+        ],
+        "BLUE": [
+            0,
+            0,
+            255
+        ],
+        "WHITE": [
+            255,
+            255,
+            255
+        ]
     },
     "agent1": {
         "name": "Agent1",
-        "instructions": "Generate exactly {num_points} pairs of (x, y) coordinates in this format: (x1,y1), (x2,y2), (x3,y3). For each pair, x should be between 0 and {width - 1}, and y should be between 0 and {height - 1}. Provide only the coordinates, with no additional text."
+        "instructions": "Generate exactly {num_points} pairs of (x, y) coordinates in this format: (x1,y1), (x2,y2), (x3,y3). For each pair, x should be between 0 and {width}, and y should be between 0 and {height}. Provide only the coordinates, with no additional text."
     },
     "agent2": {
         "name": "Agent2",
-        "instructions": "For each coordinate in {{coordinates}}, increase the x-coordinate by a random amount between 15 and 30, and the y-coordinate by a random amount between 30 and 50. Ensure that each point gets a different random value for its x and y. Return the updated coordinates in the same format as the input, with no additional text."
+        "instructions": "For each coordinate in {coordinates}, increase the x-coordinate by a random amount between 15 and 30, and the y-coordinate by a random amount between 30 and 50. Ensure that each point gets a different random value for its x and y. Return the updated coordinates in the same format as the input, with no additional text."
     },
     "agent3": {
         "name": "Agent3",
-        "instructions": "Update only the y values in {{coordinates}} that are greater than 300 by setting them to 0, and update only the x values in {{coordinates}} that are greater than 500 by setting them to 0. Return the result in the same format as {{coordinates}}, with no extra text and keeping the same number of coordinate pairs as in the input."
+        "instructions": "Update only the y values in {coordinates} that are greater than 300 by setting them to 0, and update only the x values in {coordinates} that are greater than 500 by setting them to 0. Return the result in the same format as {coordinates}, with no extra text and keeping the same number of coordinate pairs as in the input."
     },
     "agent4": {
         "name": "Agent4",
-        "instructions": "For each coordinate in {{coordinates}}, check if any other coordinate is within a radius of {self.radius}. If the distance between two points is smaller than the radius, adjust the x-coordinate of the first point by moving it -50 units.  Return the updated coordinates in the same format as the input, with no additional text."
+        "instructions": "For each coordinate in {coordinates}, check if any other coordinate is within a radius of {radius}. If the distance between two points is smaller than the radius, adjust the x-coordinate of the first point by moving it -50 units.  Return the updated coordinates in the same format as the input, with no additional text."
     }
 }

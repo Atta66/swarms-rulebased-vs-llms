@@ -1,0 +1,38 @@
+coordinates will give you as many coordinates that you generate in json file
+
+"For each coordinate in {coordinates}, check if any other 
+coordinate is within a radius of {radius}. If the distance 
+between two points is smaller than the radius, adjust the 
+x-coordinate of the first point by moving it -50 units.
+Return the updated coordinates in the same format as the input, 
+with no additional text."
+
+what this does:
+
+# Define the list of points
+points = [(47, 331), (247, 380), (162, 105), (137, 370), (44, 270)]
+radius = 30
+adjustment = -50
+
+# Function to check if two points are within the given radius
+def is_within_radius(p1, p2, radius):
+    return math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) <= radius
+
+# Check each point for neighbors within the radius and adjust x-coordinate if necessary
+adjusted_points = []
+for i, p1 in enumerate(points):
+    adjust = False
+    for j, p2 in enumerate(points):
+        if i != j and is_within_radius(p1, p2, radius):
+            adjust = True
+            break
+    if adjust:
+        adjusted_points.append((p1[0] + adjustment, p1[1]))
+    else:
+        adjusted_points.append(p1)
+
+for each point, this will be better. more details.
+
+all coordinates increment the same amount. I tried to change the prompt many times. Has to be done for each point.
+
+Biggest observation, when it is a swarm: a lot of points, either unpredictable, or everything treated as the same. 
