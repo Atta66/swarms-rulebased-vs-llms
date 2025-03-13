@@ -2,7 +2,7 @@
     "width": 600,
     "height": 400,
     "point_size": 5,
-    "num_points": 20,
+    "num_points": 5,
     "radius": 40,
     "colors": {
         "BLACK": [
@@ -37,7 +37,7 @@
     },
     "agent2": {
         "name": "Agent2",
-        "instructions": "For each coordinate in {coordinates}, increase the x-coordinate by a random amount between 15 and 30, and the y-coordinate by a random amount between 30 and 50. Ensure that each point gets a different random value for its x and y. Return the updated coordinates in the same format as the input, with no additional text."
+        "instructions": "For each coordinate in {coordinates}, increase the x-coordinate by a random amount between 15 and 100, and the y-coordinate by a random amount between 30 and 100. Make sure no two coordinates in {coordinates} have the same random increment. Return the updated coordinates in the same format as the input, with no additional text."
     },
     "agent3": {
         "name": "Agent3",
@@ -49,84 +49,40 @@
     },
     "coordinates": [
         [
-            134,
-            215
+            0,
+            0
         ],
         [
-            480,
-            309
+            1,
+            1
         ],
         [
-            352,
-            61
+            100,
+            100
         ],
         [
-            220,
-            140
+            1,
+            1
         ],
         [
-            550,
-            389
+            2,
+            2
         ],
         [
-            76,
-            19
+            101,
+            101
         ],
         [
-            432,
-            277
+            100,
+            100
         ],
         [
-            298,
-            338
+            101,
+            101
         ],
         [
-            501,
-            98
-        ],
-        [
-            59,
-            212
-        ],
-        [
-            310,
-            178
-        ],
-        [
-            223,
-            50
-        ],
-        [
-            489,
-            370
-        ],
-        [
-            596,
-            15
-        ],
-        [
-            110,
-            300
-        ],
-        [
-            415,
-            155
-        ],
-        [
-            257,
-            370
-        ],
-        [
-            575,
-            204
-        ],
-        [
-            187,
-            380
-        ],
-        [
-            349,
-            45
+            102,
+            102
         ]
     ]
 }
