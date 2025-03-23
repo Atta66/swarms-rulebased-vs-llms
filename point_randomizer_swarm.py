@@ -10,8 +10,8 @@ import random
 class RandomMovingPoints:
     def __init__(self, config_file="config.json"):
 
-        base_path = "C:\\Users\\Atta\\Desktop\\workspace\\ACES\\swarm_ai\\ACES"
-        # base_path = "C:\\Users\\attah\\OneDrive\\Desktop\\workspace\\ACES\\swarm_openai\\ACES"
+        # base_path = "C:\\Users\\Atta\\Desktop\\workspace\\ACES\\swarm_ai\\ACES"
+        base_path = "C:\\Users\\attah\\OneDrive\\Desktop\\workspace\\ACES\\swarm_openai\\ACES"
         config_path = os.path.join(base_path, "config", config_file)
 
         self.load_config(config_path)
@@ -80,8 +80,8 @@ class RandomMovingPoints:
         """Update and save coordinates back to the config file."""
         self.config["coordinates"] = coordinates  # Update the 'coordinates' key in the config
 
-        base_path = "C:\\Users\\Atta\\Desktop\\workspace\\ACES\\swarm_ai\\ACES"
-        # base_path = "C:\\Users\\attah\\OneDrive\\Desktop\\workspace\\ACES\\swarm_openai\\ACES"
+        # base_path = "C:\\Users\\Atta\\Desktop\\workspace\\ACES\\swarm_ai\\ACES"
+        base_path = "C:\\Users\\attah\\OneDrive\\Desktop\\workspace\\ACES\\swarm_openai\\ACES"
         config_path = os.path.join(base_path, "config", "config.json")
 
         with open(config_path, 'w') as f:
@@ -146,7 +146,6 @@ class RandomMovingPoints:
         last_message = response.messages[-1]
 
         print(f"Raw response from Agent2: {last_message['content']}")  # Log raw response
-
 
         if last_message["content"] is not None:
             self.velocities = self.parse_func(last_message["content"])
@@ -268,7 +267,6 @@ class RandomMovingPoints:
 
         # Quit pygame when the loop finishes
         pygame.quit()
-
 
 # Create an instance of the game and run it
 if __name__ == "__main__":
