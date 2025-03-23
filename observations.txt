@@ -1,4 +1,22 @@
 =================================  
+            Important  
+=================================  
+
+In swarm -> core.py, adjust the client:
+  - client = OpenAI(base_url="http://192.168.4.26:1235/v1", api_key="random")
+  - client = OpenAI(base_url="http://127.0.0.1/v1", api_key="random")
+  - client = OpenAI()
+
+then adjust the model in run_and_stream function:
+  - model_override="gpt-4.0-mini"
+  - model_override=model_override
+
+Windows (host) to Linux (LM Studio - remote) connection:
+  - LM Studio has a loopback ip as default, to change this to 0.0.0.0 (listen all) use:
+	socat TCP-LISTEN:1235,fork,reuseaddr TCP:127.0.0.1:1234
+  - open LM Studio and start server
+
+=================================  
             Structure  
 =================================  
 
