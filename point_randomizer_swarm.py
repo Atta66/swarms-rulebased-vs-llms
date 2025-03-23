@@ -5,6 +5,7 @@ from swarm import Swarm, Agent
 import re
 import math
 import os
+import random
 
 class RandomMovingPoints:
     def __init__(self, config_file="config.json"):
@@ -31,6 +32,8 @@ class RandomMovingPoints:
         # Initialize pygame clock for frame rate control
         self.clock = pygame.time.Clock()
         self.running = True
+        self.velocities = [(0, 0) for _ in range(self.num_points)]  # Initialize velocities for each point
+        self.perception_radius = self.config.get("perception_radius", 50)  # Radius for neighbor detection
 
     def load_config(self, config_file):
         """Load configuration from the JSON file."""
@@ -43,10 +46,12 @@ class RandomMovingPoints:
                 self.point_size = self.config["point_size"]
                 self.num_points = self.config["num_points"]
                 self.radius = self.config["radius"]
+                self.perception_radius = self.config.get("perception_radius", 50)
                 self.agent1_config = self.config["agent1"]
                 self.agent2_config = self.config["agent2"]
                 self.agent3_config = self.config["agent3"]
                 self.agent4_config = self.config["agent4"]
+                self.agent5_config = self.config["agent5"]  # Add this line to load agent5 configuration
         
         except FileNotFoundError:
             print(f"Config file {config_file} not found.")
@@ -59,12 +64,17 @@ class RandomMovingPoints:
         """Draw a point at the given coordinates."""
         pygame.draw.circle(self.win, self.POINT_COLOR, (x, y), self.point_size)
 
-    def parse_coordinates(self, coord_string):
-        # Use regex to extract numbers with or without surrounding brackets
-        coord_pairs = re.findall(r"[\[\(]?(\d+),\s*(\d+)[\]\)]?", coord_string)
-        # Convert the pairs from strings to integers
-        coords = [(int(x), int(y)) for x, y in coord_pairs]
-        return coords
+    def parse_func(self, array_string):
+        """Parse coordinates or velocities from the agent's response."""
+        try:
+            # Use regex to extract pairs of numbers (including floats)
+            array_pairs = re.findall(r"[\[\(]?([\d\.eE+-]+),\s*([\d\.eE+-]+)[\]\)]?", array_string)
+            # Convert the pairs from strings to floats
+            parsed_array = [(float(x), float(y)) for x, y in array_pairs]
+            return parsed_array
+        except Exception as e:
+            print(f"Error parsing response: {e}")
+            return []
 
     def save_coordinates_to_config(self, coordinates):
         """Update and save coordinates back to the config file."""
@@ -76,6 +86,17 @@ class RandomMovingPoints:
 
         with open(config_path, 'w') as f:
             json.dump(self.config, f, indent=4)  # Write the updated config back to the file
+
+    def save_velocities_to_config(self, velocities):
+        """Update and save velocities back to the config file."""
+        self.config["velocities"] = velocities
+
+        # base_path = "C:\\Users\\Atta\\Desktop\\workspace\\ACES\\swarm_ai\\ACES"
+        base_path = "C:\\Users\\attah\\OneDrive\\Desktop\\workspace\\ACES\\swarm_openai\\ACES"
+        config_path = os.path.join(base_path, "config", "config.json")
+
+        with open(config_path, 'w') as f:
+            json.dump(self.config, f, indent=4)
 
     def run_agent1(self):
         """Run Agent1 once to get the initial coordinates."""
@@ -90,24 +111,31 @@ class RandomMovingPoints:
         )
 
         response = self.client.run(agent=agent1, messages=self.messages)
-        # self.messages = response.messages
         last_message = response.messages[-1]
 
         if last_message["content"] is not None:
-            coordinates = self.parse_coordinates(last_message["content"])
+            coordinates = self.parse_func(last_message["content"])
         else:
             print("Invalid response from Agent1")
         print("generated coordinates (agent1): ", coordinates)
 
+        # Initialize velocities for each coordinate
+        for i in range(len(coordinates)):
+            avg_vx, avg_vy = random.uniform(-70, 70), random.uniform(-70, 70)
+            self.velocities[i] = (avg_vx, avg_vy)
+        print("initial velocities: ", self.velocities)        
+        
+        self.save_velocities_to_config(self.velocities)
+
         self.save_coordinates_to_config(coordinates)
-        return coordinates
+        return coordinates, self.velocities
 
-    def run_agent2(self, coordinates):
-        """Run Agent2 in the loop to increment the coordinates."""
+    def run_agent2(self):
+        """Run Agent2 to apply alignment (Boids rule)."""
 
-        # Get the instructions and replace placeholders with the actual values
+        # Include velocities in the instructions for Agent2
         instructions = self.agent2_config["instructions"]
-        instructions = instructions.format(coordinates=coordinates)
+        instructions = instructions.format(velocities=self.velocities, perception_radius=self.perception_radius)
 
         agent2 = Agent(
             name=self.agent2_config["name"],
@@ -117,16 +145,23 @@ class RandomMovingPoints:
         response = self.client.run(agent=agent2, messages=self.messages)
         last_message = response.messages[-1]
 
+        print(f"Raw response from Agent2: {last_message['content']}")  # Log raw response
+
+
         if last_message["content"] is not None:
-            coordinates = self.parse_coordinates(last_message["content"])
-        print("incremented coordinates (agent2): ", coordinates)
-        return coordinates
+            self.velocities = self.parse_func(last_message["content"])
+        else:
+            print("Invalid response from Agent 2")      
+
+        self.save_velocities_to_config(self.velocities)
+        
+        print("velocities (agent2): ", self.velocities)
+        return self.velocities
 
     def run_agent3(self, coordinates):
-        """Update y values greater than 300 to 0."""
-
+        """Run Agent3 to apply cohesion (Boids rule)."""
         instructions = self.agent3_config["instructions"]
-        instructions = instructions.format(coordinates=coordinates)
+        instructions = instructions.format(coordinates=coordinates, perception_radius=self.perception_radius)
 
         agent3 = Agent(
             name=self.agent3_config["name"],
@@ -135,14 +170,16 @@ class RandomMovingPoints:
 
         response = self.client.run(agent=agent3, messages=self.messages)
         last_message = response.messages[-1]
-        coordinates = self.parse_coordinates(last_message["content"])
-        print("boundary check coordinates (agent3): ", coordinates)
+
+        print(f"Raw response from Agent3: {last_message['content']}")  # Log raw response
+
+        if last_message["content"] is not None:
+            coordinates = self.parse_func(last_message["content"])
+        print("cohesive coordinates (agent3): ", coordinates)
         return coordinates
 
     def run_agent4(self, coordinates):
-        """Use Agent4 to check each point's radius and move in the -x direction if another point is inside its radius."""
-        # Create the agent with the appropriate instructions for checking distances
-        
+        """Run Agent4 to apply separation (Boids rule)."""
         instructions = self.agent4_config["instructions"]
         instructions = instructions.format(coordinates=coordinates, radius=self.radius)
 
@@ -150,18 +187,35 @@ class RandomMovingPoints:
             name=self.agent4_config["name"],
             instructions=instructions
         )
-        
-        # Call the agent with the given instructions
+
         response = self.client.run(agent=agent4, messages=self.messages)
         last_message = response.messages[-1]
-        
-        # Parse the returned coordinates
+
+        print(f"Raw response from Agent4: {last_message['content']}")  # Log raw response
+
         if last_message["content"] is not None:
-            coordinates = self.parse_coordinates(last_message["content"])
-            print("adjusted coordinates (agent4): ", coordinates)
-        else:
-            print("Invalid response from Agent4")
-        
+            coordinates = self.parse_func(last_message["content"])
+        print("separated coordinates (agent4): ", coordinates)
+        return coordinates
+
+    def run_agent5(self, coordinates):
+        """Run Agent5 to combine all Boids rules."""
+        instructions = self.agent5_config["instructions"]
+        instructions = instructions.format(coordinates=coordinates, velocities=self.velocities, width=self.width, height=self.height)
+
+        agent5 = Agent(
+            name=self.agent5_config["name"],
+            instructions=instructions
+        )
+
+        response = self.client.run(agent=agent5, messages=self.messages)
+        last_message = response.messages[-1]
+
+        print(f"Raw response from Agent5: {last_message['content']}")  # Log raw response
+
+        if last_message["content"] is not None:
+            coordinates = self.parse_func(last_message["content"])
+        print("final coordinates (agent5): ", coordinates)
         return coordinates
 
     def draw_and_update_points(self, coordinates):
@@ -182,6 +236,7 @@ class RandomMovingPoints:
 
     def run(self):
         coordinates = []
+        velocities = []
         
         while self.running:
             # Fill the background
@@ -189,32 +244,27 @@ class RandomMovingPoints:
 
             if self.initial_step == 0:
                 # Get response from agent 1
-                coordinates = self.run_agent1()
+                coordinates, velocities  = self.run_agent1()
                 self.initial_step += 1
-                self.draw_and_update_points(coordinates)
             else:
                 # Get response from agent 3 (including agent 2 steps)
-                coordinates = self.run_agent2(coordinates)
-                self.draw_and_update_points(coordinates)
-
+                velocities = self.run_agent2()
                 coordinates = self.run_agent3(coordinates)
                 self.draw_and_update_points(coordinates)
-
-                # Run Agent4 to check if points are within radius of each other
                 coordinates = self.run_agent4(coordinates)
                 self.draw_and_update_points(coordinates)
-                # break
+                coordinates = self.run_agent5(coordinates)
 
-            # Reset messages for the next iteration
+            self.draw_and_update_points(coordinates)
             self.messages = []
 
-        # Check for quit events
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.running = False
+            # Check for quit events
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
 
-        # Control the frame rate
-        self.clock.tick(60)
+            # Control the frame rate
+            self.clock.tick(60)
 
         # Quit pygame when the loop finishes
         pygame.quit()

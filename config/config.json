@@ -2,8 +2,9 @@
     "width": 600,
     "height": 400,
     "point_size": 5,
-    "num_points": 20,
-    "radius": 40,
+    "num_points": 10,
+    "radius": 50,
+    "perception_radius": 100,
     "colors": {
         "BLACK": [
             0,
@@ -37,96 +38,102 @@
     },
     "agent2": {
         "name": "Agent2",
-        "instructions": "For each coordinate in {coordinates}, increase the x-coordinate by a random amount between 15 and 30, and the y-coordinate by a random amount between 30 and 50. Ensure that each point gets a different random value for its x and y. Return the updated coordinates in the same format as the input, with no additional text."
+        "instructions": "For each velocity in {velocities}, calculate the average velocity of all nearby points within a radius of {perception_radius}. Adjust the velocity of each point to align with this average velocity. Return the updated velocities in the same format as the input, with no additional text."
     },
     "agent3": {
         "name": "Agent3",
-        "instructions": "Update only the y values in {coordinates} that are greater than 300 by setting them to 0, and update only the x values in {coordinates} that are greater than 500 by setting them to 0. Return the result in the same format as {coordinates}, with no extra text and keeping the same number of coordinate pairs as in the input."
+        "instructions": "For each coordinate in {coordinates}, calculate the average coordinate of all nearby points within a radius of {perception_radius}. Adjust each coordinate to move slightly toward this average coordinate. Return the updated coordinates in the same format as the input, with no additional text."
     },
     "agent4": {
         "name": "Agent4",
-        "instructions": "For each coordinate in {coordinates}, check if any other coordinate is within a radius of {radius}. If the distance between two points is smaller than the radius, adjust the x-coordinate of the first point by moving it -50 units.  Return the updated coordinates in the same format as the input, with no additional text."
+        "instructions": "For each coordinate in {coordinates}, check if it is within a radius of {radius} of any other coordinate. If the distance between any two points is smaller than the radius, adjust the position of the first coordinate to move away from the second coordinate to maintain separation. The second coordinate should remain unchanged during this check. Once a coordinate has been adjusted, it should not be checked again when processing subsequent coordinates. Additionally, ensure that no two points have the same final coordinates. If the final position of one coordinate overlaps with another, adjust the position of the first coordinate to ensure uniqueness, while the second coordinate remains unchanged. Each coordinate should be checked against all others to ensure proper separation and uniqueness. Return the updated coordinates in the same format as the input, with no additional text."
+    },
+    "agent5": {
+        "name": "Agent5",
+        "instructions": "For each coordinate in {coordinates}, update its position by adding the corresponding velocity from {velocities}. If the updated position moves out of bounds (0 to {width} for x, and 0 to {height} for y), randomly snap the coordinate to one of the four edges: (0, 0), ({width}, 0), (0, {height}), or ({width}, {height}). Return the updated coordinates in the same format as the input, with no additional text."
     },
     "coordinates": [
         [
-            134,
-            215
+            45.0,
+            120.0
         ],
         [
-            480,
-            309
+            300.0,
+            200.0
         ],
         [
-            352,
-            61
+            580.0,
+            399.0
         ],
         [
-            220,
-            140
+            150.0,
+            290.0
         ],
         [
-            550,
-            389
+            420.0,
+            50.0
         ],
         [
-            76,
-            19
+            38.0,
+            360.0
         ],
         [
-            432,
-            277
+            512.0,
+            98.0
         ],
         [
-            298,
-            338
+            266.0,
+            180.0
         ],
         [
-            501,
-            98
+            490.0,
+            370.0
         ],
         [
-            59,
-            212
+            120.0,
+            305.0
+        ]
+    ],
+    "velocities": [
+        [
+            -12.533738299905464,
+            3.145606537670264
         ],
         [
-            310,
-            178
+            -12.533738299905464,
+            3.145606537670264
         ],
         [
-            223,
-            50
+            -12.533738299905464,
+            3.145606537670264
         ],
         [
-            489,
-            370
+            -12.533738299905464,
+            3.145606537670264
         ],
         [
-            596,
-            15
+            -12.533738299905464,
+            3.145606537670264
         ],
         [
-            110,
-            300
+            -12.533738299905464,
+            3.145606537670264
         ],
         [
-            415,
-            155
+            -12.533738299905464,
+            3.145606537670264
         ],
         [
-            257,
-            370
+            -12.533738299905464,
+            3.145606537670264
         ],
         [
-            575,
-            204
+            -12.533738299905464,
+            3.145606537670264
         ],
         [
-            187,
-            380
-        ],
-        [
-            349,
-            45
+            -12.533738299905464,
+            3.145606537670264
         ]
     ]
 }
