@@ -2,138 +2,42 @@
     "width": 600,
     "height": 400,
     "point_size": 5,
-    "num_points": 10,
+    "num_points": 4,
     "radius": 50,
     "perception_radius": 100,
     "colors": {
-        "BLACK": [
-            0,
-            0,
-            0
-        ],
-        "RED": [
-            255,
-            0,
-            0
-        ],
-        "GREEN": [
-            0,
-            255,
-            0
-        ],
-        "BLUE": [
-            0,
-            0,
-            255
-        ],
-        "WHITE": [
-            255,
-            255,
-            255
-        ]
+        "BLACK": [0, 0, 0],
+        "RED": [255, 0, 0],
+        "GREEN": [0, 255, 0],
+        "BLUE": [0, 0, 255],
+        "WHITE": [255, 255, 255]
     },
     "agent1": {
         "name": "Agent1",
-        "instructions": "Generate exactly {num_points} pairs of (x, y) coordinates in this format: (x1,y1), (x2,y2), (x3,y3). For each pair, x should be between 0 and {width}, and y should be between 0 and {height}. Provide only the coordinates, with no additional text."
+        "instructions": "You are a boid particle. Your current position is {position}, and your velocity is {velocity}. There are 3 other boids with positions and velocities: {other_agents}. Calculate your new velocity based on the Boids rules: 1) Separation: Avoid getting too close to other boids within a radius of {radius}. 2) Alignment: Align your velocity with the average velocity of nearby boids within a radius of {perception_radius}. 3) Cohesion: Move slightly toward the average position of nearby boids within a radius of {perception_radius}. Return your updated velocity in this format: (vx, vy). No additional text."
     },
     "agent2": {
         "name": "Agent2",
-        "instructions": "For each velocity in {velocities}, calculate the average velocity of all nearby points within a radius of {perception_radius}. Adjust the velocity of each point to align with this average velocity. Return the updated velocities in the same format as the input, with no additional text."
+        "instructions": "You are a boid particle. Your current position is {position}, and your velocity is {velocity}. There are 3 other boids with positions and velocities: {other_agents}. Calculate your new velocity based on the Boids rules: 1) Separation: Avoid getting too close to other boids within a radius of {radius}. 2) Alignment: Align your velocity with the average velocity of nearby boids within a radius of {perception_radius}. 3) Cohesion: Move slightly toward the average position of nearby boids within a radius of {perception_radius}. Return your updated velocity in this format: (vx, vy). No additional text."
     },
     "agent3": {
         "name": "Agent3",
-        "instructions": "For each coordinate in {coordinates}, calculate the average coordinate of all nearby points within a radius of {perception_radius}. Adjust each coordinate to move slightly toward this average coordinate. Return the updated coordinates in the same format as the input, with no additional text."
+        "instructions": "You are a boid particle. Your current position is {position}, and your velocity is {velocity}. There are 3 other boids with positions and velocities: {other_agents}. Calculate your new velocity based on the Boids rules: 1) Separation: Avoid getting too close to other boids within a radius of {radius}. 2) Alignment: Align your velocity with the average velocity of nearby boids within a radius of {perception_radius}. 3) Cohesion: Move slightly toward the average position of nearby boids within a radius of {perception_radius}. Return your updated velocity in this format: (vx, vy). No additional text."
     },
     "agent4": {
         "name": "Agent4",
-        "instructions": "For each coordinate in {coordinates}, check if it is within a radius of {radius} of any other coordinate. If the distance between any two points is smaller than the radius, adjust the position of the first coordinate to move away from the second coordinate to maintain separation. The second coordinate should remain unchanged during this check. Once a coordinate has been adjusted, it should not be checked again when processing subsequent coordinates. Additionally, ensure that no two points have the same final coordinates. If the final position of one coordinate overlaps with another, adjust the position of the first coordinate to ensure uniqueness, while the second coordinate remains unchanged. Each coordinate should be checked against all others to ensure proper separation and uniqueness. Return the updated coordinates in the same format as the input, with no additional text."
-    },
-    "agent5": {
-        "name": "Agent5",
-        "instructions": "For each coordinate in {coordinates}, update its position by adding the corresponding velocity from {velocities}. If the updated position moves out of bounds (0 to {width} for x, and 0 to {height} for y), randomly snap the coordinate to one of the four edges: (0, 0), ({width}, 0), (0, {height}), or ({width}, {height}). Return the updated coordinates in the same format as the input, with no additional text."
+        "instructions": "You are a boid particle. Your current position is {position}, and your velocity is {velocity}. There are 3 other boids with positions and velocities: {other_agents}. Calculate your new velocity based on the Boids rules: 1) Separation: Avoid getting too close to other boids within a radius of {radius}. 2) Alignment: Align your velocity with the average velocity of nearby boids within a radius of {perception_radius}. 3) Cohesion: Move slightly toward the average position of nearby boids within a radius of {perception_radius}. Return your updated velocity in this format: (vx, vy). No additional text."
     },
     "coordinates": [
-        [
-            150.0,
-            277.0
-        ],
-        [
-            394.0,
-            198.0
-        ],
-        [
-            562.0,
-            330.0
-        ],
-        [
-            47.0,
-            259.0
-        ],
-        [
-            187.0,
-            134.0
-        ],
-        [
-            514.0,
-            388.0
-        ],
-        [
-            90.0,
-            35.0
-        ],
-        [
-            623.0,
-            142.0
-        ],
-        [
-            340.0,
-            299.0
-        ],
-        [
-            275.0,
-            367.0
-        ]
+        [150.0, 277.0],
+        [394.0, 198.0],
+        [562.0, 330.0],
+        [47.0, 259.0]
     ],
     "velocities": [
-        [
-            4.831104774782009,
-            -7.976066634377353
-        ],
-        [
-            4.831104774782009,
-            -7.976066634377353
-        ],
-        [
-            4.831104774782009,
-            -7.976066634377353
-        ],
-        [
-            4.831104774782009,
-            -7.976066634377353
-        ],
-        [
-            4.831104774782009,
-            -7.976066634377353
-        ],
-        [
-            4.831104774782009,
-            -7.976066634377353
-        ],
-        [
-            4.831104774782009,
-            -7.976066634377353
-        ],
-        [
-            4.831104774782009,
-            -7.976066634377353
-        ],
-        [
-            4.831104774782009,
-            -7.976066634377353
-        ],
-        [
-            4.831104774782009,
-            -7.976066634377353
-        ]
+        [4.0, -3.0],
+        [-2.0, 1.0],
+        [1.0, 2.0],
+        [-1.0, -2.0]
     ]
 }
