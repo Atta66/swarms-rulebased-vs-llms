@@ -37,10 +37,7 @@ class RandomMovingPoints:
                 self.radius = self.config["radius"]
                 self.perception_radius = self.config["perception_radius"]
                 self.agent_configs = [
-                    self.config["agent1"],
-                    self.config["agent2"],
-                    self.config["agent3"],
-                    self.config["agent4"]
+                    self.config["agent1"]
                 ]
                 self.coordinates = self.config["coordinates"]
                 self.velocities = self.config["velocities"]
@@ -56,15 +53,20 @@ class RandomMovingPoints:
         """Draw a point at the given coordinates."""
         pygame.draw.circle(self.win, self.POINT_COLOR, (int(x), int(y)), self.point_size)
 
-    def run_agent(self, agent_config, position, velocity, other_agents):
+    def run_agent(self, agent_config, position, velocity, other_agents, width, height, num_points):
         """Run an agent to calculate its new velocity."""
+
+        print("the postion, velocity and other agents are: ", position, velocity, other_agents)
         instructions = agent_config["instructions"]
         instructions = instructions.format(
             position=position,
             velocity=velocity,
             other_agents=other_agents,
             radius=self.radius,
-            perception_radius=self.perception_radius
+            perception_radius=self.perception_radius,
+            width=width,
+            height=height,
+            num_points=num_points
         )
 
         agent = Agent(
@@ -96,14 +98,19 @@ class RandomMovingPoints:
 
             # Run the agent to calculate its new velocity
             new_velocity = self.run_agent(
-                self.agent_configs[i],
+                self.agent_configs[0],
                 position=position,
                 velocity=velocity,
-                other_agents=other_agents
+                other_agents=other_agents,
+                width=self.width,
+                height=self.height,
+                num_points=self.num_points
             )
             new_velocities.append(new_velocity)
 
         # Update positions based on new velocities
+
+        print("the new velocities are: ", new_velocities)
         for i in range(self.num_points):
             self.coordinates[i][0] += new_velocities[i][0]
             self.coordinates[i][1] += new_velocities[i][1]
