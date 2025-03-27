@@ -5,7 +5,9 @@ import os
 
 class RandomMovingPoints:
     def __init__(self, config_file="config.json"):
-        base_path = "C:\\Users\\attah\\OneDrive\\Desktop\\workspace\\ACES\\swarm_openai\\ACES"
+        # adjust the path accordingly
+        # base_path = "C:\\Users\\attah\\OneDrive\\Desktop\\workspace\\ACES\\swarm_openai\\ACES"
+        base_path = "C:\\Users\\Atta\\Desktop\\workspace\\ACES\\swarm_ai\\boids\\ACES"
         config_path = os.path.join(base_path, "config", config_file)
 
         self.load_config(config_path)
@@ -37,7 +39,9 @@ class RandomMovingPoints:
                 self.radius = self.config["radius"]
                 self.perception_radius = self.config["perception_radius"]
                 self.agent_configs = [
-                    self.config["agent1"]
+                    self.config["agent1"],
+                    self.config["agent2"],
+                    self.config["agent3"]
                 ]
                 self.coordinates = self.config["coordinates"]
                 self.velocities = self.config["velocities"]
@@ -54,9 +58,7 @@ class RandomMovingPoints:
         pygame.draw.circle(self.win, self.POINT_COLOR, (int(x), int(y)), self.point_size)
 
     def run_agent(self, agent_config, position, velocity, other_agents, width, height, num_points):
-        """Run an agent to calculate its new velocity."""
-
-        print("the postion, velocity and other agents are: ", position, velocity, other_agents)
+        """Run an agent to calculate its output."""
         instructions = agent_config["instructions"]
         instructions = instructions.format(
             position=position,
@@ -78,16 +80,15 @@ class RandomMovingPoints:
         last_message = response.messages[-1]
 
         if last_message["content"] is not None:
-            new_velocity = eval(last_message["content"])  # Parse the returned velocity
+            result = eval(last_message["content"])  # Parse the returned result
         else:
             print(f"Invalid response from {agent_config['name']}")
-            new_velocity = velocity  # Keep the old velocity if the response is invalid
+            result = None  # Return None if the response is invalid
 
-        return new_velocity
+        return result
 
     def update_agents(self):
-        """Update the velocities and positions of all agents."""
-        new_velocities = []
+        """Update the positions and velocities of all agents using separation, cohesion, and alignment."""
         for i in range(self.num_points):
             position = self.coordinates[i]
             velocity = self.velocities[i]
@@ -96,9 +97,9 @@ class RandomMovingPoints:
                 for j in range(self.num_points) if j != i
             ]
 
-            # Run the agent to calculate its new velocity
-            new_velocity = self.run_agent(
-                self.agent_configs[0],
+            # Separation agent
+            new_position = self.run_agent(
+                self.agent_configs[0],  # Separation agent
                 position=position,
                 velocity=velocity,
                 other_agents=other_agents,
@@ -106,16 +107,41 @@ class RandomMovingPoints:
                 height=self.height,
                 num_points=self.num_points
             )
-            new_velocities.append(new_velocity)
+            if new_position:
+                self.coordinates[i] = list(new_position)
+                print(f"New position: {new_position}")
 
-        # Update positions based on new velocities
+            # Cohesion agent
+            new_position = self.run_agent(
+                self.agent_configs[1],  # Cohesion agent
+                position=self.coordinates[i],
+                velocity=velocity,
+                other_agents=other_agents,
+                width=self.width,
+                height=self.height,
+                num_points=self.num_points
+            )
+            if new_position:
+                self.coordinates[i] = list(new_position)
+                print(f"New position: {new_position}")
 
-        print("the new velocities are: ", new_velocities)
-        for i in range(self.num_points):
-            self.coordinates[i][0] += new_velocities[i][0]
-            self.coordinates[i][1] += new_velocities[i][1]
+            # Alignment agent
+            new_velocity = self.run_agent(
+                self.agent_configs[2],  # Alignment agent
+                position=self.coordinates[i],
+                velocity=velocity,
+                other_agents=other_agents,
+                width=self.width,
+                height=self.height,
+                num_points=self.num_points
+            )
+            if new_velocity:
+                self.velocities[i] = list(new_velocity)  
 
-        self.velocities = new_velocities
+            # Add velocity to the final coordinates
+            self.coordinates[i][0] += self.velocities[i][0]
+            self.coordinates[i][1] += self.velocities[i][1]
+            print(f"New coordinates: {self.coordinates[i]}")
 
     def draw_and_update_points(self):
         """Draw each point on the screen and update their positions."""

@@ -2,7 +2,7 @@
     "width": 600,
     "height": 400,
     "point_size": 3,
-    "num_points": 6,
+    "num_points": 3,
     "radius": 20,
     "perception_radius": 100,
     "colors": {
@@ -13,23 +13,25 @@
         "WHITE": [255, 255, 255]
     },
     "agent1": {
-        "name": "Agent1",
-        "instructions": "You are a boid particle. Your current position is {position}, and your velocity is {velocity}. There are {num_points} other boids with positions and velocities: {other_agents}. Calculate your new velocity based on the Boids rules: 1) Separation: Avoid getting too close to other boids within a radius of {radius}. 2) Alignment: Align your velocity with the average velocity of nearby boids within a radius of {perception_radius}. 3) Cohesion: Move slightly toward the average position of nearby boids within a radius of {perception_radius}. Ensure that the updated position does not go out of the grid boundaries (0 to {width} for x, and 0 to {height} for y). If the updated position is out of bounds, adjust it to stay within the grid. Return your updated velocity in this exact format: (vx, vy). Do not include any additional text, explanations, or formatting."
+        "name": "SeparationAgent",
+        "instructions": "You are a boid particle. Your current position is {position}, and your velocity is {velocity}. There are {num_points} other boids with positions and velocities: {other_agents}. Calculate your new position based on the Separation rule: Avoid getting too close to other boids within a radius of {radius}. Ensure that the updated position does not go out of the grid boundaries (0 to {width} for x, and 0 to {height} for y). Return your updated position in this exact format: (x, y). Do not include any additional text, explanations, or formatting."
+    },
+    "agent2": {
+        "name": "CohesionAgent",
+        "instructions": "You are a boid particle. Your current position is {position}, and your velocity is {velocity}. There are {num_points} other boids with positions and velocities: {other_agents}. Calculate your new position based on the Cohesion rule: Move slightly toward the average position of nearby boids within a radius of {perception_radius}. Ensure that the updated position does not go out of the grid boundaries (0 to {width} for x, and 0 to {height} for y). Return your updated position in this exact format: (x, y). Do not include any additional text, explanations, or formatting."
+    },
+    "agent3": {
+        "name": "AlignmentAgent",
+        "instructions": "You are a boid particle. Your current position is {position}, and your velocity is {velocity}. There are {num_points} other boids with positions and velocities: {other_agents}. Calculate your new velocity based on the Alignment rule: Align your velocity with the average velocity of nearby boids within a radius of {perception_radius}. Return your updated velocity in this exact format: (vx, vy). Do not include any additional text, explanations, or formatting."
     },
     "coordinates": [
         [50.0, 100.0],
         [300.0, 50.0],
-        [450.0, 200.0],
-        [200.0, 300.0],
-        [100.0, 250.0],
-        [500.0, 350.0]
+        [450.0, 200.0]
     ],
     "velocities": [
-    [15.2, -8.7],
-    [-12.4, 10.1],
-    [9.8, -14.3],
-    [7.5, 11.6],
-    [-10.2, 8.9],
-    [13.4, -9.5]
-]
+        [15.2, -8.7],
+        [-12.4, 10.1],
+        [9.8, -14.3]
+    ]
 }
