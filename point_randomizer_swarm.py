@@ -8,7 +8,7 @@ class RandomMovingPoints:
     def __init__(self, config_file="config.json"):
         # adjust the path accordingly
         # base_path = "C:\\Users\\attah\\OneDrive\\Desktop\\workspace\\ACES\\swarm_openai\\ACES"
-        base_path = "C:\\Users\\Atta\\Desktop\\workspace\\ACES\\swarm_ai\\boids\\ACES"
+        base_path = "C:\\Users\\Atta\\Desktop\\workspace\\ACES\\swarm_ai\\ACES"
         config_path = os.path.join(base_path, "config", config_file)
 
         self.load_config(config_path)
@@ -44,6 +44,7 @@ class RandomMovingPoints:
                     self.config["agent3"]
                 ]
                 self.coordinates = self.config["coordinates"]
+                self.velocities = self.config["velocities"]
         
         except FileNotFoundError:
             print(f"Config file {config_file} not found.")
@@ -56,15 +57,19 @@ class RandomMovingPoints:
         """Draw a point at the given coordinates."""
         pygame.draw.circle(self.win, self.POINT_COLOR, (int(x), int(y)), self.point_size)
 
-    def run_agent(self, agent_config, position, velocity, other_agents, width, height, num_points):
+    def run_agent(self, agent_config, position, velocity, other_positions):
         """Run an agent to calculate its output."""
         instructions = agent_config["instructions"]
+        
         instructions = instructions.format(
             position=position,
             other_positions=other_positions,
+            velocity=velocity if "velocity" in instructions else "",  # Include velocity only if needed
+            perception_radius=self.perception_radius,
             radius=self.radius,
             width=self.width,
-            height=self.height
+            height=self.height,
+            num_points=self.num_points
         )
 
         agent = Agent(
@@ -93,7 +98,8 @@ class RandomMovingPoints:
             new_position = self.run_agent(
                 self.agent_configs[0],  # Separation agent
                 position=position,
-                other_positions=other_positions
+                other_positions=other_positions,
+                velocity=self.velocities[i]
             )
             if new_position:
                 self.coordinates[i] = list(new_position)
@@ -103,11 +109,8 @@ class RandomMovingPoints:
             new_position = self.run_agent(
                 self.agent_configs[1],  # Cohesion agent
                 position=self.coordinates[i],
-                velocity=velocity,
-                other_agents=other_agents,
-                width=self.width,
-                height=self.height,
-                num_points=self.num_points
+                velocity=self.velocities[i],
+                other_positions=other_positions,
             )
             if new_position:
                 self.coordinates[i] = list(new_position)
@@ -117,11 +120,8 @@ class RandomMovingPoints:
             new_velocity = self.run_agent(
                 self.agent_configs[2],  # Alignment agent
                 position=self.coordinates[i],
-                velocity=velocity,
-                other_agents=other_agents,
-                width=self.width,
-                height=self.height,
-                num_points=self.num_points
+                velocity=self.velocities[i],
+                other_positions=other_positions
             )
             if new_velocity:
                 self.velocities[i] = list(new_velocity)  
@@ -144,9 +144,7 @@ class RandomMovingPoints:
     def run(self):
         while self.running:
             self.draw_and_update_points()
-            self.update_positions()
-            self.draw_and_update_points()
-            self.messages = []
+            self.update_agents()
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
