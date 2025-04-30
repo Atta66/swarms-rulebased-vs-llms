@@ -1,9 +1,10 @@
 {
     "width": 600,
     "height": 400,
-    "point_size": 5,
-    "num_points": 4,
-    "radius": 50,
+    "point_size": 3,
+    "num_points": 3,
+    "radius": 20,
+    "perception_radius": 100,
     "colors": {
         "BLACK": [0, 0, 0],
         "RED": [255, 0, 0],
@@ -11,16 +12,25 @@
         "WHITE": [255, 255, 255]
     },
     "agent1": {
-        "name": "Agent1",
-        "_comment1": "You are a particle. Your current position is {position}, and there are other particles at {other_positions}. If the distance between you and any other particle is less than {radius}, move in the opposite direction from the closest particle. Otherwise, move 10 units in the direction of the average position of all particles. Ensure that your updated position does not go out of the grid boundaries (0 to {width} for x, and 0 to {height} for y). Return your updated position in this exact format: (x, y). Do not include any additional text.",
-        "_comment2": "You are a particle. Your current position is {position}, and there are other particles at {other_positions}. If the distance between you and any other particle is less than {radius}, move in the opposite direction from the closest particle. Otherwise, move 10 units in the direction of the average position of all particles, calculated from {other_positions}. Ensure that your updated position does not go out of the grid boundaries (0 to {width} for x, and 0 to {height} for y). Return your updated position in this exact format: (x, y). Do not include any additional text.",
-        "_comment3": "You are a particle. Your current position is {position}, and there are other particles at {other_positions}. If the distance between you and any other particle is less than {radius}, move in the opposite direction from the closest particle by 30 units. Otherwise, move in the direction of the average position of all particles including you by 20 units, calculated from {position} and {other_positions}. Return your updated position in this exact format: (x, y). Do not include any additional text, explanations, or formatting.",
-        "instructions": "You are a particle. Your current position is {position}, and there are other particles at {other_positions}. Calculate the average position of all particles, including yourself. If the average position is within a radius of 150 from your current position, move in the opposite direction by 10 units. Otherwise, move 10 units in the direction of the average position. Return your updated position in this exact format: (x, y). Do not include any additional text, explanations, or formatting."
+        "name": "SeparationAgent",
+        "instructions": "You are a boid particle. Your current position is {position}, and your velocity is {velocity}. There are {num_points} other boids with positions and velocities: {other_agents}. Calculate your new position based on the Separation rule: Avoid getting too close to other boids within a radius of {radius}. Ensure that the updated position does not go out of the grid boundaries (0 to {width} for x, and 0 to {height} for y). Return your updated position in this exact format: (x, y). Do not include any additional text, explanations, or formatting."
+    },
+    "agent2": {
+        "name": "CohesionAgent",
+        "instructions": "You are a boid particle. Your current position is {position}, and your velocity is {velocity}. There are {num_points} other boids with positions and velocities: {other_agents}. Calculate your new position based on the Cohesion rule: Move slightly toward the average position of nearby boids within a radius of {perception_radius}. Ensure that the updated position does not go out of the grid boundaries (0 to {width} for x, and 0 to {height} for y). Return your updated position in this exact format: (x, y). Do not include any additional text, explanations, or formatting."
+    },
+    "agent3": {
+        "name": "AlignmentAgent",
+        "instructions": "You are a boid particle. Your current position is {position}, and your velocity is {velocity}. There are {num_points} other boids with positions and velocities: {other_agents}. Calculate your new velocity based on the Alignment rule: Align your velocity with the average velocity of nearby boids within a radius of {perception_radius}. Return your updated velocity in this exact format: (vx, vy). Do not include any additional text, explanations, or formatting."
     },
     "coordinates": [
-        [50.0, 200.0],
-        [450.0, 200.0],
+        [50.0, 100.0],
         [300.0, 50.0],
-        [300.0, 350.0]
+        [450.0, 200.0]
+    ],
+    "velocities": [
+        [15.2, -8.7],
+        [-12.4, 10.1],
+        [9.8, -14.3]
     ]
 }

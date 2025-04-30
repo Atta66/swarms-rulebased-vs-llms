@@ -6,7 +6,9 @@ import math
 
 class RandomMovingPoints:
     def __init__(self, config_file="config.json"):
-        base_path = "C:\\Users\\attah\\OneDrive\\Desktop\\workspace\\ACES\\swarm_openai\\ACES"
+        # adjust the path accordingly
+        # base_path = "C:\\Users\\attah\\OneDrive\\Desktop\\workspace\\ACES\\swarm_openai\\ACES"
+        base_path = "C:\\Users\\Atta\\Desktop\\workspace\\ACES\\swarm_ai\\boids\\ACES"
         config_path = os.path.join(base_path, "config", config_file)
 
         self.load_config(config_path)
@@ -35,7 +37,12 @@ class RandomMovingPoints:
                 self.point_size = self.config["point_size"]
                 self.num_points = self.config["num_points"]
                 self.radius = self.config["radius"]
-                self.agent_config = self.config["agent1"]
+                self.perception_radius = self.config["perception_radius"]
+                self.agent_configs = [
+                    self.config["agent1"],
+                    self.config["agent2"],
+                    self.config["agent3"]
+                ]
                 self.coordinates = self.config["coordinates"]
         
         except FileNotFoundError:
@@ -49,8 +56,8 @@ class RandomMovingPoints:
         """Draw a point at the given coordinates."""
         pygame.draw.circle(self.win, self.POINT_COLOR, (int(x), int(y)), self.point_size)
 
-    def run_agent(self, agent_config, position, other_positions):
-        """Run an agent to calculate its new position."""
+    def run_agent(self, agent_config, position, velocity, other_agents, width, height, num_points):
+        """Run an agent to calculate its output."""
         instructions = agent_config["instructions"]
         instructions = instructions.format(
             position=position,
@@ -69,30 +76,60 @@ class RandomMovingPoints:
         last_message = response.messages[-1]
 
         if last_message["content"] is not None:
-            new_position = eval(last_message["content"])  # Parse the returned position
+            result = eval(last_message["content"])  # Parse the returned result
         else:
             print(f"Invalid response from {agent_config['name']}")
-            new_position = position  # Keep the old position if the response is invalid
+            result = None  # Return None if the response is invalid
 
-        return new_position
+        return result
 
-    def update_positions(self):
-        """Update the positions of all particles."""
-        new_coordinates = []
+    def update_agents(self):
+        """Update the positions and velocities of all agents using separation, cohesion, and alignment."""
         for i in range(self.num_points):
             position = self.coordinates[i]
             other_positions = [self.coordinates[j] for j in range(self.num_points) if j != i]
 
-            # Run the agent to calculate its new position
+            # Separation agent
             new_position = self.run_agent(
-                self.agent_config,
+                self.agent_configs[0],  # Separation agent
                 position=position,
                 other_positions=other_positions
             )
-            new_coordinates.append(new_position)
+            if new_position:
+                self.coordinates[i] = list(new_position)
+                print(f"New position: {new_position}")
 
-        self.coordinates = new_coordinates
-        print("New coordinates: ", self.coordinates)
+            # Cohesion agent
+            new_position = self.run_agent(
+                self.agent_configs[1],  # Cohesion agent
+                position=self.coordinates[i],
+                velocity=velocity,
+                other_agents=other_agents,
+                width=self.width,
+                height=self.height,
+                num_points=self.num_points
+            )
+            if new_position:
+                self.coordinates[i] = list(new_position)
+                print(f"New position: {new_position}")
+
+            # Alignment agent
+            new_velocity = self.run_agent(
+                self.agent_configs[2],  # Alignment agent
+                position=self.coordinates[i],
+                velocity=velocity,
+                other_agents=other_agents,
+                width=self.width,
+                height=self.height,
+                num_points=self.num_points
+            )
+            if new_velocity:
+                self.velocities[i] = list(new_velocity)  
+
+            # Add velocity to the final coordinates
+            self.coordinates[i][0] += self.velocities[i][0]
+            self.coordinates[i][1] += self.velocities[i][1]
+            print(f"New coordinates: {self.coordinates[i]}")
 
     def draw_and_update_points(self):
         """Draw each point on the screen and update their positions."""
