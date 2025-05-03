@@ -7,8 +7,8 @@ import math
 class RandomMovingPoints:
     def __init__(self, config_file="config.json"):
         # adjust the path accordingly
-        # base_path = "C:\\Users\\attah\\OneDrive\\Desktop\\workspace\\ACES\\swarm_openai\\ACES"
-        base_path = "C:\\Users\\Atta\\Desktop\\workspace\\ACES\\swarm_ai\\ACES"
+        base_path = "C:\\Users\\attah\\OneDrive\\Desktop\\workspace\\ACES\\swarm_openai\\ACES"
+        # base_path = "C:\\Users\\Atta\\Desktop\\workspace\\ACES\\swarm_ai\\ACES"
         config_path = os.path.join(base_path, "config", config_file)
 
         self.load_config(config_path)
@@ -103,7 +103,7 @@ class RandomMovingPoints:
             )
             if new_position:
                 self.coordinates[i] = list(new_position)
-                print(f"New position: {new_position}")
+                # print(f"New position: {new_position}")
 
             # Cohesion agent
             new_position = self.run_agent(
@@ -114,7 +114,7 @@ class RandomMovingPoints:
             )
             if new_position:
                 self.coordinates[i] = list(new_position)
-                print(f"New position: {new_position}")
+                # print(f"New position: {new_position}")
 
             # Alignment agent
             new_velocity = self.run_agent(
