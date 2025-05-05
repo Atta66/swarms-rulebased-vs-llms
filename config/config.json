@@ -11,6 +11,9 @@
         "BLUE": [0, 0, 255],
         "WHITE": [255, 255, 255]
     },
+    "evaporation_rate": 0.1,
+    "alpha": 1.0,
+    "beta": 2.0,
     "agent1": {
         "name": "SeparationAgent",
         "instructions": "You are a boid particle. Your current position is {position}. There are {num_points} other boids with positions and velocities: {other_positions}. Calculate your new position based on the Separation rule: Avoid getting too close to other boids within a radius of {radius}. Ensure that the updated position does not go out of the grid boundaries (0 to {width} for x, and 0 to {height} for y). Return your updated position in this exact format: (x, y). Do not include any additional text, explanations, or formatting."
