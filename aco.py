@@ -1,10 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+evaporation_rate = 0.01
+
 # Two possible paths between A and B
 paths = {
     "short": {"distance": 1, "pheromone": 1},
-    "long": {"distance": 3, "pheromone": 1}
+    "long": {"distance": 2, "pheromone": 1}
 }
 
 def choose_path(paths):
@@ -21,7 +23,11 @@ for step in range(50):
     chosen = choose_path(paths)
     history[chosen] += 1
     # reinforce the chosen path
-    paths[chosen]["pheromone"] += 1
+    # paths[chosen]["pheromone"] += 1
+    paths[chosen]["pheromone"] += 1 / paths[chosen]["distance"]
+
+    for path in paths.values():
+        path["pheromone"] *= (1 - evaporation_rate)
 
     # Plot the pheromone levels
     plt.clf()
