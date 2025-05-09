@@ -1,41 +1,32 @@
 {
-    "width": 600,
-    "height": 400,
-    "point_size": 3,
-    "num_points": 4,
-    "radius": 50,
-    "perception_radius": 150,
-    "colors": {
-        "BLACK": [0, 0, 0],
-        "RED": [255, 0, 0],
-        "BLUE": [0, 0, 255],
-        "WHITE": [255, 255, 255]
+    "evaporation_rate": 0.01,
+    "paths": {
+        "short": {"distance": 1, "pheromone": 1},
+        "long": {"distance": 3, "pheromone": 1}
     },
-    "evaporation_rate": 0.1,
-    "alpha": 1.0,
-    "beta": 2.0,
     "agent1": {
-        "name": "SeparationAgent",
-        "instructions": "You are a boid particle. Your current position is {position}. There are {num_points} other boids with positions and velocities: {other_positions}. Calculate your new position based on the Separation rule: Avoid getting too close to other boids within a radius of {radius}. Ensure that the updated position does not go out of the grid boundaries (0 to {width} for x, and 0 to {height} for y). Return your updated position in this exact format: (x, y). Do not include any additional text, explanations, or formatting."
+        "name": "PathSelectionAgent",
+        "instructions": "You are an ant in an Ant Colony Optimization simulation. Your task is to choose a path between two points based on the following data:
+                        - Paths: {paths}
+                        - Each path has a distance and a pheromone level.
+
+                        Use the formula: Probability ∝ (pheromone / distance). Calculate the probabilities for each path and return the name of the path you choose. Do not include any additional text or explanations."
     },
     "agent2": {
-        "name": "CohesionAgent",
-        "instructions": "You are a boid particle. Your current position is {position}, and your velocity is {velocity}. There are {num_points} other boids with positions and velocities: {other_positions}. Calculate your new position based on the Cohesion rule: Move slightly toward the average position of nearby boids within a radius of {perception_radius}. Ensure that the updated position does not go out of the grid boundaries (0 to {width} for x, and 0 to {height} for y). Return your updated position in this exact format: (x, y). Do not include any additional text, explanations, or formatting."
+        "name": "PheromoneUpdateAgent",
+        "instructions": "You are a pheromone update agent in an Ant Colony Optimization simulation. Your task is to update the pheromone levels of the paths based on the chosen path and its quality:
+                        - Chosen path: {chosen_path}
+                        - Current pheromone levels: {pheromone_levels}
+                        - Quality of the chosen path: {quality} (lower distance means higher quality).
+
+                        Increase the pheromone level of the chosen path based on its quality. Return the updated pheromone levels for all paths in this format: {path_name: pheromone_level}."
     },
     "agent3": {
-        "name": "AlignmentAgent",
-        "instructions": "You are a boid particle. Your current position is {position}, and your velocity is {velocity}. There are {num_points} other boids with positions and velocities: {other_positions}. Calculate your new velocity based on the Alignment rule: Align your velocity with the average velocity of nearby boids within a radius of {perception_radius}. Return your updated velocity in this exact format: (vx, vy). Do not include any additional text, explanations, or formatting."
-    },
-    "coordinates": [
-        [50.0, 100.0],
-        [100.0, 50.0],
-        [200.0, 200.0],
-        [100.0, 150.0]
-    ],
-    "velocities": [
-    [2.0, -1.0],
-    [-1.5, 1.5],
-    [1.0, -2.0],
-    [-1.0, 2.0]
-    ]
+        "name": "EvaporationAgent",
+        "instructions": "You are a pheromone evaporation agent in an Ant Colony Optimization simulation. Your task is to apply evaporation to the pheromone levels of the paths:
+                        - Current pheromone levels: {pheromone_levels}
+                        - Evaporation rate: {evaporation_rate}.
+
+                        Decrease the pheromone levels of all paths by the evaporation rate. Return the updated pheromone levels for all paths in this format: {path_name: pheromone_level}."
+    }
 }
