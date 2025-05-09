@@ -6,27 +6,14 @@
     },
     "agent1": {
         "name": "PathSelectionAgent",
-        "instructions": "You are an ant in an Ant Colony Optimization simulation. Your task is to choose a path between two points based on the following data:
-                        - Paths: {paths}
-                        - Each path has a distance and a pheromone level.
-
-                        Use the formula: Probability ∝ (pheromone / distance). Calculate the probabilities for each path and return the name of the path you choose. Do not include any additional text or explanations."
+        "instructions": "You are an agent in an Ant Colony Optimization simulation. Your environment provides two paths with the following characteristics: paths = {paths}. Based on this information, choose one of the paths in a way that balances the pheromone level and the distance, following behavior inspired by real ant colonies. Return only the name of the chosen path: short or long."
     },
     "agent2": {
         "name": "PheromoneUpdateAgent",
-        "instructions": "You are a pheromone update agent in an Ant Colony Optimization simulation. Your task is to update the pheromone levels of the paths based on the chosen path and its quality:
-                        - Chosen path: {chosen_path}
-                        - Current pheromone levels: {pheromone_levels}
-                        - Quality of the chosen path: {quality} (lower distance means higher quality).
-
-                        Increase the pheromone level of the chosen path based on its quality. Return the updated pheromone levels for all paths in this format: {path_name: pheromone_level}."
+        "instructions": "You are a pheromone update agent in an Ant Colony Optimization simulation. The paths are given by {paths}. Based on the chosen path which is {chosen_path}, update the pheromone levels to reflect the quality of the chosen path and respond with the updated pheromones as an output: [x,y] where x corresponds to short and y corresponds to long. No additional text."
     },
     "agent3": {
         "name": "EvaporationAgent",
-        "instructions": "You are a pheromone evaporation agent in an Ant Colony Optimization simulation. Your task is to apply evaporation to the pheromone levels of the paths:
-                        - Current pheromone levels: {pheromone_levels}
-                        - Evaporation rate: {evaporation_rate}.
-
-                        Decrease the pheromone levels of all paths by the evaporation rate. Return the updated pheromone levels for all paths in this format: {path_name: pheromone_level}."
-    }
+        "instructions": "You are a pheromone evaporation agent. The paths are given by {paths}. Based on the evaporation rate {evaporation_rate}, apply evaporation to the pheromone levels and return the pheromone levels in the format: [x,y] where x corresponds to short and y corresponds to long. No additional text."
+    } 
 }

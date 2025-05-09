@@ -15,9 +15,16 @@ class AntColonyOptimization:
         config = self.load_config()
         self.evaporation_rate = config["evaporation_rate"]
         self.paths = config["paths"]
-        self.history = config["history"]
+        # self.history = config["history"]
         self.client = Swarm()
         self.messages = []
+        self.chosen_path = None
+        self.agent_prompts = [
+            config["agent1"],
+            config["agent2"],
+            config["agent3"]
+        ]
+        self.pheromones = []
 
     def load_config(self):
         """Load configuration from the JSON file."""
@@ -31,54 +38,64 @@ class AntColonyOptimization:
             print(f"Error decoding the config file {self.config_path}.")
             raise
 
-    def run_agent(self, agent_config, **kwargs):
+    # def extract_pheromones(self, response_str):
+    #     data = json.loads(response_str)
+    #     return {path: info["pheromone"] for path, info in data.items()}
+
+    def run_agent(self, agent_prompt, paths, evaporation_rate, chosen_path=None, **kwargs):
         """Run an agent to calculate its output."""
-        instructions = agent_config["instructions"].format(**kwargs)
-        agent = Agent(name=agent_config["name"], instructions=instructions)
+        instructions = agent_prompt["instructions"]
+        print(f"Running agent: {agent_prompt['name']}")
+        print(f"Instructions: {instructions}")
+        
+        instructions = instructions.format(
+            paths=paths,
+            evaporation_rate=evaporation_rate,
+            chosen_path=chosen_path
+        )
+
+        agent = Agent(
+            name=agent_prompt["name"],
+            instructions=instructions
+        )
+
         response = self.client.run(agent=agent, messages=self.messages)
         last_message = response.messages[-1]
 
         if last_message["content"] is not None:
-            return eval(last_message["content"])
+            try:
+                # Parse the response as JSON if it's expected to be a dictionary
+                result = json.loads(last_message["content"].strip())
+            except json.JSONDecodeError:
+                print(f"Error decoding response from {agent_prompt['name']}: {last_message['content']}")
+                result = last_message["content"].strip()  # Use the raw string if JSON parsing fails
         else:
-            print(f"Invalid response from {agent_config['name']}")
-            return None
+            print(f"Invalid response from {agent_prompt['name']}")
+            result = None  # Return None if the response is invalid
 
-    def choose_path(self):
-        """Use LLM to choose a path based on probabilities."""
-        agent_config = {
-            "name": "PathSelectionAgent",
-            "instructions": "You are an ant in an Ant Colony Optimization simulation. Your task is to choose a path between two points based on the following data:\n- Paths: {paths}\n- Each path has a distance and a pheromone level.\n\nUse the formula: Probability ∝ (pheromone / distance). Calculate the probabilities for each path and return the name of the path you choose. Do not include any additional text or explanations."
-        }
-        return self.run_agent(agent_config, paths=self.paths)
+        return result
 
-    def update_pheromones(self, chosen_path):
-        """Use LLM to update pheromone levels."""
-        agent_config = {
-            "name": "PheromoneUpdateAgent",
-            "instructions": "You are a pheromone update agent in an Ant Colony Optimization simulation. Your task is to update the pheromone levels of the paths based on the chosen path and its quality:\n- Chosen path: {chosen_path}\n- Current pheromone levels: {pheromone_levels}\n- Quality of the chosen path: {quality} (lower distance means higher quality).\n\nIncrease the pheromone level of the chosen path based on its quality. Return the updated pheromone levels for all paths in this format: {path_name: pheromone_level}."
-        }
-        updated_pheromones = self.run_agent(agent_config, chosen_path=chosen_path, pheromone_levels=self.paths, quality=1 / self.paths[chosen_path]["distance"])
-        if updated_pheromones:
-            self.paths.update(updated_pheromones)
+    def choose_update_paths(self):
+        
+        self.chosen_path = self.run_agent(self.agent_prompts[0], paths=self.paths, evaporation_rate=self.evaporation_rate)
+        print(f"Chosen path: {self.chosen_path}")
 
-    def evaporate_pheromones(self):
-        """Use LLM to apply pheromone evaporation."""
-        agent_config = {
-            "name": "EvaporationAgent",
-            "instructions": "You are a pheromone evaporation agent in an Ant Colony Optimization simulation. Your task is to apply evaporation to the pheromone levels of the paths:\n- Current pheromone levels: {pheromone_levels}\n- Evaporation rate: {evaporation_rate}.\n\nDecrease the pheromone levels of all paths by the evaporation rate. Return the updated pheromone levels for all paths in this format: {path_name: pheromone_level}."
-        }
-        updated_pheromones = self.run_agent(agent_config, pheromone_levels=self.paths, evaporation_rate=self.evaporation_rate)
-        if updated_pheromones:
-            self.paths.update(updated_pheromones)
+        self.pheromones = self.run_agent(self.agent_prompts[1], paths=self.paths, evaporation_rate=self.evaporation_rate, chosen_path=self.chosen_path)
+        print(f"Updated pheromones: {self.paths}")
 
-    def simulate(self, steps=50):
+        self.paths["short"]["pheromone"] = self.pheromones[0]
+        self.paths["long"]["pheromone"] = self.pheromones[1]
+
+        self.pheromones = self.run_agent(self.agent_prompts[2], paths=self.paths, evaporation_rate=self.evaporation_rate)  
+        print(f"Final pheromones: {self.paths}")
+
+        self.paths["short"]["pheromone"] = self.pheromones[0]
+        self.paths["long"]["pheromone"] = self.pheromones[1]
+        
+
+    def simulate(self, steps=1):
         for step in range(steps):
-            chosen = self.choose_path()
-            if chosen:
-                self.history[chosen] += 1
-                self.update_pheromones(chosen)
-                self.evaporate_pheromones()
+            self.choose_update_paths()
 
             # Plot the pheromone levels
             plt.clf()
@@ -89,6 +106,9 @@ class AntColonyOptimization:
 
         plt.show()
 
-# Initialize and run the simulation
-aco = AntColonyOptimization(config_path)
-aco.simulate()
+if __name__ == "__main__":
+    aco = AntColonyOptimization(config_path)
+    aco.simulate(steps=13)
+    print("Simulation complete.")
+    print("Final pheromone levels:", aco.paths)
+    print("Path history:", aco.history)
