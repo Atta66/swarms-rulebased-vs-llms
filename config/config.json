@@ -6,7 +6,7 @@
     },
     "agent1": {
         "name": "PathSelectionAgent",
-        "instructions": "You are an agent in an Ant Colony Optimization simulation. Your environment provides two paths with the following characteristics: paths = {paths}. Based on this information, choose one of the paths in a way that balances the pheromone level and the distance, following behavior inspired by real ant colonies. Return only the name of the chosen path: short or long."
+        "instructions": "Your environment provides two paths with the following characteristics: paths = {paths}. Based on this information, choose one of the paths in a way that balances the pheromone level and the distance, following behavior inspired by real ant colonies. Return only the name of the chosen path: short or long."
     },
     "agent2": {
         "name": "PheromoneUpdateAgent",
