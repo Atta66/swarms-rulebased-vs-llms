@@ -4,6 +4,9 @@ import os
 import math
 import random
 from swarm import Swarm, Agent
+import psutil
+import GPUtil
+import matplotlib.pyplot as plt
 
 class LLMBoids:
     def __init__(self, config_file="config.json"):
@@ -146,16 +149,56 @@ class LLMBoids:
 
     def run(self):
         import time
+        cpu_usages = []
+        ram_usages = []
+        gpu_loads = []
+        gpu_mem_usages = []
+        time_steps = []
+        step_count = 0
         while self.running:
             start_time = time.time()
             self.draw_and_update_points()
             self.update_agents()
             step_time = time.time() - start_time
             print(f"Time for one time step: {step_time:.3f} seconds")
+            # System resource usage (like test.py)
+            cpu_usage = psutil.cpu_percent(interval=None)
+            ram_usage = psutil.virtual_memory().percent
+            gpus = GPUtil.getGPUs()
+            if gpus:
+                gpu = gpus[0]
+                gpu_load = gpu.load * 100
+                gpu_mem_usage = gpu.memoryUtil * 100
+            else:
+                gpu_load = 0
+                gpu_mem_usage = 0
+            print(f"CPU Usage: {cpu_usage:.2f}%")
+            print(f"RAM Usage: {ram_usage:.2f}%")
+            print(f"GPU Load: {gpu_load:.2f}%")
+            print(f"GPU Memory Usage: {gpu_mem_usage:.2f}%")
+            cpu_usages.append(cpu_usage)
+            ram_usages.append(ram_usage)
+            gpu_loads.append(gpu_load)
+            gpu_mem_usages.append(gpu_mem_usage)
+            time_steps.append(step_count)
+            step_count += 1
+            if step_count >= 10:
+                break
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
             pygame.time.delay(100)
+        plt.figure(figsize=(8,4))
+        plt.plot(time_steps, cpu_usages, label='CPU Usage (%)', marker='o')
+        plt.plot(time_steps, ram_usages, label='RAM Usage (%)', marker='^')
+        plt.plot(time_steps, gpu_loads, label='GPU Load (%)', marker='s')
+        plt.plot(time_steps, gpu_mem_usages, label='GPU Mem Usage (%)', marker='x')
+        plt.xlabel('Time Step')
+        plt.ylabel('Usage (%)')
+        plt.title('CPU, RAM, and GPU Usage Over Time (10 Steps)')
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
         pygame.quit()
 
 if __name__ == "__main__":

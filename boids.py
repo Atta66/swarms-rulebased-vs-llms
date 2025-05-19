@@ -3,6 +3,8 @@ import json
 import os
 import math
 import random
+import psutil
+import GPUtil
 
 class ClassicBoids:
     def __init__(self, config_file="config.json"):
@@ -158,6 +160,10 @@ class ClassicBoids:
         import time
         steps = 10
         total_time = 0.0
+        cpu_usages = []
+        ram_usages = []
+        gpu_loads = []
+        gpu_mem_usages = []
         for _ in range(steps):
             start_time = time.time()
             self.draw_and_update_points()
@@ -165,12 +171,43 @@ class ClassicBoids:
             step_time = time.time() - start_time
             total_time += step_time
             print(f"Time for one time step: {step_time:.10f} seconds")
-            
+            # System resource usage
+            cpu_usage = psutil.cpu_percent(interval=None)
+            ram_usage = psutil.virtual_memory().percent
+            gpus = GPUtil.getGPUs()
+            if gpus:
+                gpu = gpus[0]
+                gpu_load = gpu.load * 100
+                gpu_mem_usage = gpu.memoryUtil * 100
+            else:
+                gpu_load = 0
+                gpu_mem_usage = 0
+            cpu_usages.append(cpu_usage)
+            ram_usages.append(ram_usage)
+            gpu_loads.append(gpu_load)
+            gpu_mem_usages.append(gpu_mem_usage)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
             pygame.time.delay(100)
+        # Plot CPU, RAM, GPU usage over time
+        import matplotlib.pyplot as plt
+        plt.figure(figsize=(8,4))
+        plt.plot(range(steps), cpu_usages, label='CPU Usage (%)', marker='o')
+        plt.plot(range(steps), ram_usages, label='RAM Usage (%)', marker='s')
+        plt.plot(range(steps), gpu_loads, label='GPU Load (%)', marker='^')
+        plt.plot(range(steps), gpu_mem_usages, label='GPU Mem Usage (%)', marker='x')
+        plt.xlabel('Time Step')
+        plt.ylabel('Usage (%)')
+        plt.title('CPU, RAM, GPU Usage Over Time (10 Steps)')
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
         print(f"Total time for {steps} time steps: {total_time:.10f} seconds")
+        print(f"Average CPU Usage: {sum(cpu_usages)/len(cpu_usages):.2f}%")
+        print(f"Average RAM Usage: {sum(ram_usages)/len(ram_usages):.2f}%")
+        print(f"Average GPU Load: {sum(gpu_loads)/len(gpu_loads):.2f}%")
+        print(f"Average GPU Memory Usage: {sum(gpu_mem_usages)/len(gpu_mem_usages):.2f}%")
         pygame.quit()
 
 # Create an instance of the simulation and run it
