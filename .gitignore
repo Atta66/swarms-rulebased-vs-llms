@@ -1,4 +1,1 @@
-# Do not track test.py
-!test.py
-# Ignore test.py
- test.py
+test.py
