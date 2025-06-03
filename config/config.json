@@ -1,0 +1,14 @@
+{
+    "width": 600,
+    "height": 400,
+    "point_size": 3,
+    "num_points": 4,
+    "radius": 50,
+    "perception_radius": 150,
+    "colors": {
+        "BLACK": [0, 0, 0],
+        "RED": [255, 0, 0],
+        "BLUE": [0, 0, 255],
+        "WHITE": [255, 255, 255]
+    }
+}
