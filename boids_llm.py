@@ -3,10 +3,12 @@ import json
 import os
 import math
 import random
+import time
 from swarm import Swarm, Agent
 import psutil
 import GPUtil
 import matplotlib.pyplot as plt
+from agent_performance_tracker import AgentPerformanceTracker
 
 class LLMBoids:
     def __init__(self, config_file="config.json"):
@@ -22,6 +24,9 @@ class LLMBoids:
         self.POINT_COLOR = tuple(self.config["colors"]["BLUE"])
         self.running = True
         self.client = Swarm()
+        
+        # Initialize performance tracker
+        self.performance_tracker = AgentPerformanceTracker(config_path)
 
     def load_config(self, config_file):
         with open(config_file, 'r') as f:
@@ -32,6 +37,8 @@ class LLMBoids:
             self.num_points = self.config.get("num_points", 30)
             self.radius = self.config["radius"]
             self.perception_radius = self.config["perception_radius"]
+            self.simulation_steps = self.config.get("simulation_steps", 10)
+            self.prompts = self.config.get("prompts", {})
 
         # Use coordinates and velocities from config if present, else generate random
         self.coordinates = []
@@ -57,18 +64,29 @@ class LLMBoids:
         pygame.draw.circle(self.win, self.POINT_COLOR, (int(x), int(y)), self.point_size)
 
     def run_agent(self, agent_name, prompt):
-        print(f"Prompt for {agent_name}:\n{prompt}\n")  # Print the prompt
+        # Record start time for performance tracking
+        start_time = time.time()
+        
         agent = Agent(name=agent_name, instructions=prompt)
         response = self.client.run(agent=agent, messages=[])
         last_message = response.messages[-1]
+        
+        # Default return values
+        dx, dy = 0.0, 0.0
+        
         if last_message["content"] is not None:
             # Expecting output in format: (dx, dy)
             try:
                 dx, dy = eval(last_message["content"])
-                return float(dx), float(dy)
-            except Exception:
-                print(f"Invalid response from {agent_name}: {last_message['content']}")
-        return 0.0, 0.0
+                dx, dy = float(dx), float(dy)
+            except Exception as e:
+                print(f"Invalid response from {agent_name}: {last_message['content']} - Error: {e}")
+        
+        # Record end time and track performance
+        end_time = time.time()
+        self.performance_tracker.track_agent_call(agent_name, start_time, end_time, (dx, dy))
+        
+        return dx, dy
 
     def get_other_boids(self, i):
         others = []
@@ -89,34 +107,26 @@ class LLMBoids:
             others = self.get_other_boids(i)
 
             # Prompts for each rule
-            sep_prompt = (
-                f"You are a boid at position {tuple(pos)}. "
-                f"Other boids: {[(tuple(o['position']), tuple(o['velocity'])) for o in others]}. "
-                f"Your task is to avoid getting too close to other boids within a radius of {self.radius}. "
-                f"Return a (dx, dy) vector representing the separation force to apply to your velocity. "
-                f"Only output the vector as (dx, dy). NO additional text."
+            sep_prompt = self.prompts.get("separation", "").format(
+                position=tuple(pos),
+                other_boids=[(tuple(o['position']), tuple(o['velocity'])) for o in others],
+                radius=self.radius
             )
-            coh_prompt = (
-                f"You are a boid at position {tuple(pos)}. "
-                f"Other boids: {[(tuple(o['position']), tuple(o['velocity'])) for o in others]}. "
-                f"Your task is to move slightly toward the average position of nearby boids within a radius of {self.perception_radius}. "
-                f"Return a (dx, dy) vector representing the cohesion force to apply to your velocity. "
-                f"Only output the vector as (dx, dy). No additional text."
+            coh_prompt = self.prompts.get("cohesion", "").format(
+                position=tuple(pos),
+                other_boids=[(tuple(o['position']), tuple(o['velocity'])) for o in others],
+                perception_radius=self.perception_radius
             )
-            ali_prompt = (
-                f"You are a boid at position {tuple(pos)} with velocity {tuple(vel)}. "
-                f"Other boids: {[(tuple(o['position']), tuple(o['velocity'])) for o in others]}. "
-                f"Your task is to align your velocity with the average velocity of nearby boids within a radius of {self.perception_radius}. "
-                f"Return a (dx, dy) vector representing the alignment force to apply to your velocity. "
-                f"Only output the vector as (dx, dy). NO additional text."
+            ali_prompt = self.prompts.get("alignment", "").format(
+                position=tuple(pos),
+                velocity=tuple(vel),
+                other_boids=[(tuple(o['position']), tuple(o['velocity'])) for o in others],
+                perception_radius=self.perception_radius
             )
 
             sep_dx, sep_dy = self.run_agent("SeparationAgent", sep_prompt)
-            print(f"Separation output: {sep_dx}, {sep_dy}")  # Debugging output
             coh_dx, coh_dy = self.run_agent("CohesionAgent", coh_prompt)
-            print(f"Cohesion output: {coh_dx}, {coh_dy}")
             ali_dx, ali_dy = self.run_agent("AlignmentAgent", ali_prompt)
-            print(f"Alignment output: {ali_dx}, {ali_dy}")
 
             # Combine the three rules
             vx = vel[0] + sep_weight * sep_dx + coh_weight * coh_dx + ali_weight * ali_dx
@@ -130,7 +140,6 @@ class LLMBoids:
                 vy = (vy / speed) * max_speed
 
             new_velocities.append([vx, vy])
-            print(f"new velocities list: {new_velocities}")  # Debugging output
 
         # Update positions and velocities
         for i in range(self.num_points):
@@ -140,6 +149,11 @@ class LLMBoids:
             # Keep within bounds
             self.coordinates[i][0] = max(0, min(self.width, self.coordinates[i][0]))
             self.coordinates[i][1] = max(0, min(self.height, self.coordinates[i][1]))
+        
+        # Evaluate swarm performance after position updates
+        self.performance_tracker.evaluate_swarm_performance(
+            self.coordinates, self.velocities, self.radius, self.perception_radius
+        )
 
     def draw_and_update_points(self):
         self.win.fill(self.BACKGROUND)
@@ -148,7 +162,6 @@ class LLMBoids:
         pygame.display.update()
 
     def run(self):
-        import time
         cpu_usages = []
         ram_usages = []
         gpu_loads = []
@@ -160,8 +173,7 @@ class LLMBoids:
             self.draw_and_update_points()
             self.update_agents()
             step_time = time.time() - start_time
-            print(f"Time for one time step: {step_time:.3f} seconds")
-            # System resource usage (like test.py)
+            # System resource usage
             cpu_usage = psutil.cpu_percent(interval=None)
             ram_usage = psutil.virtual_memory().percent
             gpus = GPUtil.getGPUs()
@@ -172,22 +184,25 @@ class LLMBoids:
             else:
                 gpu_load = 0
                 gpu_mem_usage = 0
-            print(f"CPU Usage: {cpu_usage:.2f}%")
-            print(f"RAM Usage: {ram_usage:.2f}%")
-            print(f"GPU Load: {gpu_load:.2f}%")
-            print(f"GPU Memory Usage: {gpu_mem_usage:.2f}%")
             cpu_usages.append(cpu_usage)
             ram_usages.append(ram_usage)
             gpu_loads.append(gpu_load)
             gpu_mem_usages.append(gpu_mem_usage)
             time_steps.append(step_count)
             step_count += 1
-            if step_count >= 10:
+            if step_count >= self.simulation_steps:
                 break
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
             pygame.time.delay(100)
+        
+        # Print performance summary at the end
+        self.performance_tracker.print_performance_summary()
+        
+        # Save performance data
+        self.performance_tracker.save_performance_data("performance_data.json")
+        
         plt.figure(figsize=(8,4))
         plt.plot(time_steps, cpu_usages, label='CPU Usage (%)', marker='o')
         plt.plot(time_steps, ram_usages, label='RAM Usage (%)', marker='^')
@@ -195,7 +210,7 @@ class LLMBoids:
         plt.plot(time_steps, gpu_mem_usages, label='GPU Mem Usage (%)', marker='x')
         plt.xlabel('Time Step')
         plt.ylabel('Usage (%)')
-        plt.title('CPU, RAM, and GPU Usage Over Time (10 Steps)')
+        plt.title(f'CPU, RAM, and GPU Usage Over Time ({self.simulation_steps} Steps)')
         plt.legend()
         plt.tight_layout()
         plt.show()
