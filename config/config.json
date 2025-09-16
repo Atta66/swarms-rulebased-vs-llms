@@ -2,31 +2,23 @@
     "width": 600,
     "height": 400,
     "point_size": 3,
-    "num_points": 4,
+    "num_points":3,
     "radius": 50,
     "perception_radius": 150,
-    "simulation_steps": 50,
+    "simulation_steps": 5,
+    "velocity_damping": 0.95,
     "colors": {
         "BLACK": [0, 0, 0],
         "RED": [255, 0, 0],
         "BLUE": [0, 0, 255],
         "WHITE": [255, 255, 255]
     },
+    "random_seeds": [12345, 67890, 11111, 22222, 33333, 44444, 55555, 66666, 77777, 88888, 99999, 10101, 20202, 30303, 40404, 50505, 60606, 70707, 80808, 90909, 15151, 25252, 35353, 45454, 55555, 65656, 75757, 85858, 95959, 13579],
+    "position_spread": 0.3,
+    "velocity_spread": 0.5,
     "prompts": {
-        "separation": "You are a boid at position {position}. Other boids: {other_boids}. Your task is to avoid getting too close to other boids within a radius of {radius}. Return a (dx, dy) vector representing the separation force to apply to your velocity. Only output the vector as (dx, dy). NO additional text.",
-        "cohesion": "You are a boid at position {position}. Other boids: {other_boids}. Your task is to move slightly toward the average position of nearby boids within a radius of {perception_radius}. Return a (dx, dy) vector representing the cohesion force to apply to your velocity. Only output the vector as (dx, dy). No additional text.",
-        "alignment": "You are a boid at position {position} with velocity {velocity}. Other boids: {other_boids}. Your task is to align your velocity with the average velocity of nearby boids within a radius of {perception_radius}. Return a (dx, dy) vector representing the alignment force to apply to your velocity. Only output the vector as (dx, dy). NO additional text."
-    },
-    "coordinates": [
-        [50.0, 100.0],
-        [100.0, 50.0],
-        [200.0, 200.0],
-        [100.0, 150.0]
-    ],
-    "velocities": [
-    [2.0, -1.0],
-    [-1.5, 1.5],
-    [1.0, -2.0],
-    [-1.0, 2.0]
-    ]
+        "separation": "You are a boid at position {position} with current velocity {velocity}. Other boids: {other_boids}. Your task is to avoid getting too close to other boids within a radius of {radius}. Return a (dx, dy) vector representing the separation force to apply to your velocity. Note: Velocity damping of {velocity_damping} will be applied after force calculation to prevent excessive speeds. Only output the vector as (dx, dy). NO additional text.",
+        "cohesion": "You are a boid at position {position} with current velocity {velocity}. Other boids: {other_boids}. Your task is to move slightly toward the average position of nearby boids within a radius of {perception_radius}. Return a (dx, dy) vector representing the cohesion force to apply to your velocity. Note: Velocity damping of {velocity_damping} will be applied after force calculation to maintain stability. Only output the vector as (dx, dy). No additional text.",
+        "alignment": "You are a boid at position {position} with velocity {velocity}. Other boids: {other_boids}. Your task is to align your velocity with the average velocity of nearby boids within a radius of {perception_radius}. Return a (dx, dy) vector representing the alignment force to apply to your velocity. Note: Velocity damping of {velocity_damping} will be applied after force calculation to prevent oscillations. Only output the vector as (dx, dy). NO additional text."
+    }
 }

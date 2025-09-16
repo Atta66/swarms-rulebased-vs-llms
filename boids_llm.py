@@ -11,17 +11,20 @@ import matplotlib.pyplot as plt
 from agent_performance_tracker import AgentPerformanceTracker
 
 class LLMBoids:
-    def __init__(self, config_file="config.json"):
+    def __init__(self, config_file="config.json", headless=False):
         base_path = os.path.dirname(os.path.abspath(__file__))
         config_path = os.path.join(base_path, "config", config_file)
         self.load_config(config_path)
-
-        pygame.init()
-        self.win = pygame.display.set_mode((self.width, self.height))
-        pygame.display.set_caption("LLM Boids Simulation")
-
-        self.BACKGROUND = tuple(self.config["colors"]["WHITE"])
-        self.POINT_COLOR = tuple(self.config["colors"]["BLUE"])
+        
+        self.headless = headless
+        
+        if not headless:
+            pygame.init()
+            self.win = pygame.display.set_mode((self.width, self.height))
+            pygame.display.set_caption("LLM Boids Simulation")
+            self.BACKGROUND = tuple(self.config["colors"]["WHITE"])
+            self.POINT_COLOR = tuple(self.config["colors"]["BLUE"])
+        
         self.running = True
         self.client = Swarm()
         
@@ -60,8 +63,43 @@ class LLMBoids:
                 vy = random.uniform(-2, 2)
             self.velocities.append([vx, vy])
 
+    def generate_initial_conditions(self, seed=None):
+        """Generate initial conditions for the simulation with optional seed"""
+        if seed is not None:
+            random.seed(seed)
+        
+        self.coordinates = []
+        self.velocities = []
+        
+        # Get spread parameters from config
+        position_spread = self.config.get("position_spread", 0.8)
+        velocity_spread = self.config.get("velocity_spread", 2.0)
+        
+        # Calculate actual bounds for meaningful interactions
+        center_x = self.width * 0.5
+        center_y = self.height * 0.5
+        spread_x = self.width * position_spread * 0.5
+        spread_y = self.height * position_spread * 0.5
+        
+        for i in range(self.num_points):
+            # Generate positions within the spread area
+            x = center_x + random.uniform(-spread_x, spread_x)
+            y = center_y + random.uniform(-spread_y, spread_y)
+            
+            # Ensure positions are within bounds
+            x = max(0, min(self.width, x))
+            y = max(0, min(self.height, y))
+            
+            self.coordinates.append([x, y])
+
+            # Generate random velocities
+            vx = random.uniform(-velocity_spread, velocity_spread)
+            vy = random.uniform(-velocity_spread, velocity_spread)
+            self.velocities.append([vx, vy])
+
     def draw_point(self, x, y):
-        pygame.draw.circle(self.win, self.POINT_COLOR, (int(x), int(y)), self.point_size)
+        if not self.headless:
+            pygame.draw.circle(self.win, self.POINT_COLOR, (int(x), int(y)), self.point_size)
 
     def run_agent(self, agent_name, prompt):
         # Record start time for performance tracking
@@ -109,19 +147,24 @@ class LLMBoids:
             # Prompts for each rule
             sep_prompt = self.prompts.get("separation", "").format(
                 position=tuple(pos),
+                velocity=tuple(vel),
                 other_boids=[(tuple(o['position']), tuple(o['velocity'])) for o in others],
-                radius=self.radius
+                radius=self.radius,
+                velocity_damping=self.config.get("velocity_damping", 0.95)
             )
             coh_prompt = self.prompts.get("cohesion", "").format(
                 position=tuple(pos),
+                velocity=tuple(vel),
                 other_boids=[(tuple(o['position']), tuple(o['velocity'])) for o in others],
-                perception_radius=self.perception_radius
+                perception_radius=self.perception_radius,
+                velocity_damping=self.config.get("velocity_damping", 0.95)
             )
             ali_prompt = self.prompts.get("alignment", "").format(
                 position=tuple(pos),
                 velocity=tuple(vel),
                 other_boids=[(tuple(o['position']), tuple(o['velocity'])) for o in others],
-                perception_radius=self.perception_radius
+                perception_radius=self.perception_radius,
+                velocity_damping=self.config.get("velocity_damping", 0.95)
             )
 
             sep_dx, sep_dy = self.run_agent("SeparationAgent", sep_prompt)
@@ -131,6 +174,11 @@ class LLMBoids:
             # Combine the three rules
             vx = vel[0] + sep_weight * sep_dx + coh_weight * coh_dx + ali_weight * ali_dx
             vy = vel[1] + sep_weight * sep_dy + coh_weight * coh_dy + ali_weight * ali_dy
+
+            # Apply velocity damping to prevent excessive speed buildup
+            velocity_damping = self.config.get("velocity_damping", 0.95)
+            vx *= velocity_damping
+            vy *= velocity_damping
 
             # Limit velocity
             speed = math.sqrt(vx ** 2 + vy ** 2)
@@ -156,12 +204,54 @@ class LLMBoids:
         )
 
     def draw_and_update_points(self):
-        self.win.fill(self.BACKGROUND)
-        for x, y in self.coordinates:
-            self.draw_point(x, y)
-        pygame.display.update()
+        if not self.headless:
+            self.win.fill(self.BACKGROUND)
+            for x, y in self.coordinates:
+                self.draw_point(x, y)
+            pygame.display.update()
+
+    def run_headless(self):
+        """Run simulation without GUI for performance analysis"""
+        step_count = 0
+        
+        while step_count < self.simulation_steps:
+            self.update_agents()
+            step_count += 1
+        
+        # Get final performance data
+        performance_data = self.performance_tracker.get_performance_report()
+        
+        # Extract the metrics we need for multi-run analysis
+        result = {
+            'agent_stats': {},
+            'swarm_metrics': {}
+        }
+        
+        # Extract agent performance data
+        agent_performance = performance_data.get('agent_performance', {})
+        for agent_name, metrics in agent_performance.items():
+            result['agent_stats'][agent_name] = {
+                'success_rate': metrics.get('success_rate', 0.0),
+                'avg_response_time': metrics.get('average_response_time', 0.0),
+                'output_quality_score': metrics.get('output_quality_score', 0.0),
+                'consistency_score': metrics.get('consistency_score', 0.0)
+            }
+        
+        # Extract swarm performance data
+        swarm_performance = performance_data.get('swarm_performance', {})
+        result['swarm_metrics'] = {
+            'cohesion': swarm_performance.get('cohesion_metric', 0.0),
+            'separation': swarm_performance.get('separation_metric', 0.0),
+            'alignment': swarm_performance.get('alignment_metric', 0.0),
+            'overall_fitness': swarm_performance.get('overall_fitness', 0.0)
+        }
+        
+        return result
 
     def run(self):
+        if self.headless:
+            return self.run_headless()
+            
         cpu_usages = []
         ram_usages = []
         gpu_loads = []
@@ -200,8 +290,9 @@ class LLMBoids:
         # Print performance summary at the end
         self.performance_tracker.print_performance_summary()
         
-        # Save performance data
-        self.performance_tracker.save_performance_data("performance_data.json")
+        # Save performance data to results folder
+        os.makedirs("results/llm_boids", exist_ok=True)
+        self.performance_tracker.save_performance_data("results/llm_boids/llm_boids_performance.json")
         
         plt.figure(figsize=(8,4))
         plt.plot(time_steps, cpu_usages, label='CPU Usage (%)', marker='o')

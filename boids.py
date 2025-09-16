@@ -10,17 +10,23 @@ import matplotlib.pyplot as plt
 from agent_performance_tracker import AgentPerformanceTracker
 
 class ClassicBoids:
-    def __init__(self, config_file="config.json"):
+    def __init__(self, config_file="config.json", seed=None, headless=False):
         # Adjust the path accordingly
         base_path = os.path.dirname(os.path.abspath(__file__))
         config_path = os.path.join(base_path, "config", config_file)
 
+        self.seed = seed
+        self.headless = headless
+        if seed is not None:
+            random.seed(seed)
+            
         self.load_config(config_path)
 
-        # Initialize pygame
-        pygame.init()
-        self.win = pygame.display.set_mode((self.width, self.height))
-        pygame.display.set_caption("Classic Boids Simulation")
+        # Initialize pygame only if not headless
+        if not headless:
+            pygame.init()
+            self.win = pygame.display.set_mode((self.width, self.height))
+            pygame.display.set_caption("Classic Boids Simulation")
 
         # Define colors
         self.BACKGROUND = tuple(self.config["colors"]["WHITE"])
@@ -50,21 +56,11 @@ class ClassicBoids:
                 self.radius = self.config["radius"]
                 self.perception_radius = self.config["perception_radius"]
                 self.simulation_steps = self.config.get("simulation_steps", 10)
-                # Initialize coordinates and velocities
-                coords = self.config.get("coordinates", [])
-                vels = self.config.get("velocities", [])
-                while len(coords) < self.num_points:
-                    coords.append([
-                        random.uniform(0, self.width),
-                        random.uniform(0, self.height)
-                    ])
-                while len(vels) < self.num_points:
-                    vels.append([
-                        random.uniform(-2, 2),
-                        random.uniform(-2, 2)
-                    ])
-                self.coordinates = coords
-                self.velocities = vels
+                self.position_spread = self.config.get("position_spread", 0.3)
+                self.velocity_spread = self.config.get("velocity_spread", 0.5)
+                
+                # Generate coordinates and velocities using seed for reproducibility
+                self.generate_initial_conditions()
         except FileNotFoundError:
             print(f"Config file {config_file} not found.")
             raise
@@ -72,9 +68,41 @@ class ClassicBoids:
             print(f"Error decoding the config file {config_file}.")
             raise
 
+    def generate_initial_conditions(self):
+        """Generate initial coordinates and velocities with controlled randomness"""
+        # Center the swarm for meaningful interactions
+        center_x = self.width * 0.5
+        center_y = self.height * 0.5
+        
+        # Generate clustered positions (so boids can interact)
+        spread_x = self.width * self.position_spread
+        spread_y = self.height * self.position_spread
+        
+        self.coordinates = []
+        self.velocities = []
+        
+        for i in range(self.num_points):
+            # Generate positions around center with some spread
+            x = center_x + random.uniform(-spread_x, spread_x)
+            y = center_y + random.uniform(-spread_y, spread_y)
+            
+            # Keep within bounds
+            x = max(self.radius, min(self.width - self.radius, x))
+            y = max(self.radius, min(self.height - self.radius, y))
+            
+            self.coordinates.append([x, y])
+            
+            # Generate reasonable velocities
+            max_vel = 3.0 * self.velocity_spread
+            vx = random.uniform(-max_vel, max_vel)
+            vy = random.uniform(-max_vel, max_vel)
+            
+            self.velocities.append([vx, vy])
+
     def draw_point(self, x, y):
         """Draw a point at the given coordinates."""
-        pygame.draw.circle(self.win, self.POINT_COLOR, (int(x), int(y)), self.point_size)
+        if not self.headless:
+            pygame.draw.circle(self.win, self.POINT_COLOR, (int(x), int(y)), self.point_size)
 
     def limit_velocity(self, velocity, max_speed=4):
         speed = math.sqrt(velocity[0] ** 2 + velocity[1] ** 2)
@@ -188,6 +216,9 @@ class ClassicBoids:
         coh_weight = 0.5
         ali_weight = 1.0
         
+        # Get velocity damping factor from config
+        velocity_damping = self.config.get("velocity_damping", 0.95)
+        
         new_velocities = []
         for i in range(self.num_points):
             sep = self.separation(i)
@@ -197,6 +228,11 @@ class ClassicBoids:
             # Combine the three rules with same weights as LLM boids
             self.velocities[i][0] += sep_weight * sep[0] + coh_weight * coh[0] + ali_weight * ali[0]
             self.velocities[i][1] += sep_weight * sep[1] + coh_weight * coh[1] + ali_weight * ali[1]
+            
+            # Apply velocity damping to prevent excessive speed buildup
+            self.velocities[i][0] *= velocity_damping
+            self.velocities[i][1] *= velocity_damping
+            
             self.velocities[i] = self.limit_velocity(self.velocities[i])
 
             new_velocities.append(list(self.velocities[i]))
@@ -219,13 +255,14 @@ class ClassicBoids:
 
     def draw_and_update_points(self):
         """Draw each point on the screen and update their positions."""
-        self.win.fill(self.BACKGROUND)
+        if not self.headless:
+            self.win.fill(self.BACKGROUND)
 
-        # Draw all boids
-        for x, y in self.coordinates:
-            self.draw_point(x, y)
+            # Draw all boids
+            for x, y in self.coordinates:
+                self.draw_point(x, y)
 
-        pygame.display.update()
+            pygame.display.update()
 
     def run(self):
         steps = self.simulation_steps
@@ -275,8 +312,9 @@ class ClassicBoids:
         # Print performance summary at the end
         self.performance_tracker.print_performance_summary()
         
-        # Save performance data
-        self.performance_tracker.save_performance_data("classic_boids_performance.json")
+        # Save performance data to results folder
+        os.makedirs("results/classic_boids", exist_ok=True)
+        self.performance_tracker.save_performance_data("results/classic_boids/classic_boids_performance.json")
         
         print(f"Total time for {steps} time steps: {total_time:.10f} seconds")
         print(f"Average CPU Usage: {sum(cpu_usages)/len(cpu_usages):.2f}%")
@@ -284,6 +322,16 @@ class ClassicBoids:
         print(f"Average GPU Load: {sum(gpu_loads)/len(gpu_loads):.2f}%")
         print(f"Average GPU Memory Usage: {sum(gpu_mem_usages)/len(gpu_mem_usages):.2f}%")
         pygame.quit()
+
+    def run_headless(self):
+        """Run simulation without GUI for automated testing"""
+        for step in range(self.simulation_steps):
+            self.update_agents()
+        
+        # Save performance data with seed info (no printing for clean multi-run output)
+        os.makedirs("results/classic_boids", exist_ok=True)
+        filename = f"results/classic_boids/classic_boids_performance_seed_{self.seed}.json" if self.seed else "results/classic_boids/classic_boids_performance.json"
+        self.performance_tracker.save_performance_data(filename)
 
 # Create an instance of the simulation and run it
 if __name__ == "__main__":
