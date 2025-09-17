@@ -1,0 +1,587 @@
+#!/usr/bin/env python3
+"""
+Multi-Run ACO Analysis - 30 trials with comprehensive statistics
+Similar to boids multi-run but for Ant Colony Optimization
+"""
+
+import json
+import numpy as np
+import matplotlib.pyplot as plt
+import time
+import psutil
+import GPUtil
+import os
+from datetime import datetime
+import random
+
+def convert_numpy_types(obj):
+    """Convert NumPy types to native Python types for JSON serialization"""
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {key: convert_numpy_types(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_types(item) for item in obj]
+    else:
+        return obj
+
+class MultiRunACOAnalyzer:
+    def __init__(self, config_file="config/aco_config.json"):
+        self.config_file = config_file
+        self.load_config()
+        self.results = []
+        self.timing_data = []
+        self.performance_data = []
+        
+    def load_config(self):
+        """Load configuration including random seeds"""
+        with open(self.config_file, 'r') as f:
+            self.config = json.load(f)
+        
+        self.seeds = self.config.get("random_seeds", [12345, 67890, 11111, 22222, 33333])
+        print(f"📊 Loaded config: {len(self.seeds)} seeds, {self.config['max_iterations']} max iterations")
+        
+    def get_system_performance(self):
+        """Get current system performance metrics"""
+        try:
+            cpu_percent = psutil.cpu_percent(interval=0.1)
+            memory = psutil.virtual_memory()
+            
+            # GPU monitoring
+            gpu_load = 0
+            gpu_memory = 0
+            gpu_temp = 0
+            
+            try:
+                gpus = GPUtil.getGPUs()
+                if gpus:
+                    gpu = gpus[0]
+                    gpu_load = gpu.load * 100
+                    gpu_memory = gpu.memoryUtil * 100
+                    gpu_temp = gpu.temperature
+            except:
+                pass
+            
+            return {
+                'cpu_percent': cpu_percent,
+                'memory_mb': memory.used / (1024 * 1024),
+                'memory_percent': memory.percent,
+                'gpu_load': gpu_load,
+                'gpu_memory': gpu_memory,
+                'gpu_temp': gpu_temp,
+                'threads': psutil.cpu_count()
+            }
+        except Exception as e:
+            print(f"⚠️  Performance monitoring error: {e}")
+            return {
+                'cpu_percent': 0, 'memory_mb': 0, 'memory_percent': 0,
+                'gpu_load': 0, 'gpu_memory': 0, 'gpu_temp': 0, 'threads': 1
+            }
+    
+    def run_single_aco(self, seed, run_number):
+        """Run a single ACO simulation with given seed"""
+        print(f"🐜 Running ACO simulation {run_number}/30 with seed {seed}")
+        
+        # Set random seed
+        np.random.seed(seed)
+        random.seed(seed)
+        
+        # Start timing and performance monitoring
+        start_time = time.time()
+        start_perf = self.get_system_performance()
+        
+        # Initialize paths from config
+        paths = {
+            "short": {
+                "distance": self.config["paths"]["short"]["distance"],
+                "pheromone": self.config["paths"]["short"]["initial_pheromone"]
+            },
+            "long": {
+                "distance": self.config["paths"]["long"]["distance"], 
+                "pheromone": self.config["paths"]["long"]["initial_pheromone"]
+            }
+        }
+        
+        # ACO tracking variables
+        pheromone_history = []
+        path_selection_history = {"short": [], "long": []}
+        step_wise_ratios = []
+        history = {"short": 0, "long": 0}
+        
+        # Configuration values
+        max_iterations = self.config["max_iterations"]
+        evaporation_rate = self.config["evaporation_rate"]
+        target_ratio = self.config["target_ratio"]
+        ratio_tolerance = self.config["ratio_tolerance"]
+        
+        # Run ACO simulation
+        for step in range(max_iterations):
+            # Choose path based on pheromone levels
+            total = sum(p["pheromone"] / p["distance"] for p in paths.values())
+            probs = {name: (p["pheromone"] / p["distance"]) / total for name, p in paths.items()}
+            chosen = np.random.choice(list(probs.keys()), p=list(probs.values()))
+            
+            history[chosen] += 1
+            
+            # Track selections for analysis
+            if chosen == "short":
+                path_selection_history["short"].append(step)
+            else:
+                path_selection_history["long"].append(step)
+            
+            # Update pheromones
+            paths[chosen]["pheromone"] += 1 / paths[chosen]["distance"]
+            for path in paths.values():
+                path["pheromone"] *= (1 - evaporation_rate)
+            
+            # Store pheromone state for analysis
+            pheromone_history.append({
+                "short": paths["short"]["pheromone"],
+                "long": paths["long"]["pheromone"],
+                "step": step
+            })
+            
+            # Calculate and store ratio
+            if paths["long"]["pheromone"] > 0:
+                ratio = paths["short"]["pheromone"] / paths["long"]["pheromone"]
+                step_wise_ratios.append(ratio)
+            else:
+                step_wise_ratios.append(float('inf'))
+            
+            # Check for early convergence
+            ratio = paths["short"]["pheromone"] / paths["long"]["pheromone"]
+            if abs(ratio - target_ratio) < ratio_tolerance:
+                final_step = step + 1
+                break
+        else:
+            final_step = max_iterations
+        
+        # End timing and performance monitoring
+        end_time = time.time()
+        end_perf = self.get_system_performance()
+        simulation_duration = end_time - start_time
+        
+        # Calculate performance metrics with new ACO-specific approach
+        convergence_speed = self.calculate_convergence_speed(
+            path_selection_history["short"], 
+            path_selection_history["long"],
+            max_iterations
+        )
+        solution_quality = self.calculate_solution_quality(paths)
+        learning_efficiency = self.calculate_learning_efficiency(
+            path_selection_history["short"], 
+            path_selection_history["long"],
+            max_iterations
+        )
+        learning_stability = self.calculate_learning_stability(step_wise_ratios)
+        
+        # Overall fitness: weighted combination emphasizing solution quality and speed
+        overall_fitness = (
+            convergence_speed * 0.3 +      # 30% - How quickly it converges
+            solution_quality * 0.4 +       # 40% - How well it identifies optimal path
+            learning_efficiency * 0.2 +    # 20% - Exploration/exploitation balance
+            learning_stability * 0.1       # 10% - Consistency of learning
+        )
+        
+        # Store results
+        result = {
+            'seed': seed,
+            'run_number': run_number,
+            'final_step': final_step,
+            'convergence_time_seconds': simulation_duration,
+            'swarm_performance': {
+                'convergence_speed': convergence_speed,
+                'solution_quality': solution_quality,
+                'learning_efficiency': learning_efficiency,
+                'learning_stability': learning_stability,
+                'overall_fitness': overall_fitness
+            },
+            'additional_metrics': {
+                'final_ratio': paths["short"]["pheromone"] / paths["long"]["pheromone"] if paths["long"]["pheromone"] > 0 else float('inf'),
+                'total_selections': len(path_selection_history["short"]) + len(path_selection_history["long"])
+            },
+            'final_pheromone_levels': paths,
+            'total_path_selections': {
+                'short': len(path_selection_history["short"]),
+                'long': len(path_selection_history["long"])
+            },
+            'gperformance': {
+                'start': start_perf,
+                'end': end_perf,
+                'cpu_change': end_perf['cpu_percent'] - start_perf['cpu_percent'],
+                'memory_change_mb': end_perf['memory_mb'] - start_perf['memory_mb'],
+                'avg_cpu': (start_perf['cpu_percent'] + end_perf['cpu_percent']) / 2,
+                'avg_memory_mb': (start_perf['memory_mb'] + end_perf['memory_mb']) / 2
+            }
+        }
+        
+        overall_fitness = result['swarm_performance']['overall_fitness']
+        print(f"✅ ACO Simulation {run_number} completed successfully")
+        print(f"   Duration: {simulation_duration:.1f}s | Steps: {final_step}/{max_iterations} | Overall Fitness: {overall_fitness:.3f}")
+        
+        return result
+    
+    def calculate_convergence_speed(self, short_selections, long_selections, max_iterations):
+        """Measure how quickly the system converges to optimal path (higher = better)"""
+        if len(short_selections) == 0 and len(long_selections) == 0:
+            return 0.0
+        
+        # Find when system started preferring short path consistently
+        convergence_point = max_iterations
+        window_size = max(3, max_iterations // 10)  # Adaptive window
+        
+        for step in range(window_size, max_iterations):
+            # Check if last window_size steps show strong preference for short path
+            recent_short = len([s for s in short_selections if step - window_size <= s <= step])
+            recent_long = len([s for s in long_selections if step - window_size <= s <= step])
+            total_recent = recent_short + recent_long
+            
+            if total_recent > 0 and recent_short / total_recent >= 0.8:  # 80% preference
+                convergence_point = step
+                break
+        
+        # Earlier convergence = higher score (inverted and normalized)
+        speed_score = max(0.0, 1.0 - (convergence_point / max_iterations))
+        return speed_score
+    
+    def calculate_solution_quality(self, paths, optimal_path="short"):
+        """Measure final solution quality - how well optimal path is reinforced (higher = better)"""
+        optimal_pheromone = paths[optimal_path]["pheromone"]
+        suboptimal_pheromone = sum(p["pheromone"] for k, p in paths.items() if k != optimal_path)
+        
+        if optimal_pheromone <= 0:
+            return 0.0
+        
+        # Quality = ratio of optimal to suboptimal pheromone (normalized)
+        if suboptimal_pheromone <= 0:
+            return 1.0  # Perfect - only optimal path has pheromone
+        
+        ratio = optimal_pheromone / suboptimal_pheromone
+        # Normalize using sigmoid to get 0-1 range (ratio of 10+ gives ~0.9+ quality)
+        quality_score = ratio / (1 + ratio)
+        return min(1.0, quality_score)
+    
+    def calculate_learning_efficiency(self, short_selections, long_selections, max_iterations):
+        """Measure exploration vs exploitation balance (higher = better)"""
+        total_selections = len(short_selections) + len(long_selections)
+        if total_selections == 0:
+            return 0.0
+        
+        # Good ACO should explore early, then exploit
+        early_phase = max_iterations // 3  # First third for exploration
+        mid_phase = 2 * max_iterations // 3  # Second third for transition
+        
+        # Early exploration score (diversity is good)
+        early_short = len([s for s in short_selections if s <= early_phase])
+        early_long = len([s for s in long_selections if s <= early_phase])
+        early_total = early_short + early_long
+        
+        if early_total > 0:
+            early_balance = 1.0 - abs(0.5 - (early_short / early_total)) * 2
+        else:
+            early_balance = 0.5
+        
+        # Late exploitation score (convergence is good)
+        late_short = len([s for s in short_selections if s > mid_phase])
+        late_long = len([s for s in long_selections if s > mid_phase])
+        late_total = late_short + late_long
+        
+        if late_total > 0:
+            late_exploitation = late_short / late_total  # Higher = better (more optimal choices)
+        else:
+            late_exploitation = 0.5
+        
+        # Combine early exploration and late exploitation
+        efficiency_score = (early_balance * 0.3 + late_exploitation * 0.7)
+        return min(1.0, max(0.0, efficiency_score))
+    
+    def calculate_learning_stability(self, ratios):
+        """Measure consistency of learning process (higher = better)"""
+        if len(ratios) < 10:
+            return 1.0  # Too few points to measure instability
+        
+        # Calculate how smooth the convergence is (less oscillation = better)
+        if len(ratios) < 2:
+            return 1.0
+        
+        # Measure trend consistency - good ACO should show monotonic improvement
+        differences = np.diff(ratios)
+        sign_changes = sum(1 for i in range(len(differences)-1) 
+                          if differences[i] * differences[i+1] < 0)
+        
+        # Fewer sign changes = more stable (normalize by length)
+        max_possible_changes = len(differences) - 1
+        if max_possible_changes > 0:
+            stability_score = 1.0 - (sign_changes / max_possible_changes)
+        else:
+            stability_score = 1.0
+        
+        return max(0.0, min(1.0, stability_score))
+    
+    def run_multiple_trials(self):
+        """Run multiple ACO trials with different seeds"""
+        print(f"\n🚀 Starting Multi-Run ACO Analysis")
+        print(f"{'='*60}")
+        print(f"Number of trials: {len(self.seeds)}")
+        print(f"Max iterations per trial: {self.config['max_iterations']}")
+        print(f"Seeds: {self.seeds}")
+        print(f"{'='*60}\n")
+        
+        start_time = time.time()
+        
+        for i, seed in enumerate(self.seeds):
+            try:
+                result = self.run_single_aco(seed, i + 1)
+                self.results.append(result)
+            except Exception as e:
+                print(f"❌ Error in simulation {i+1} with seed {seed}: {e}")
+                continue
+        
+        end_time = time.time()
+        total_time = end_time - start_time
+        
+        print(f"\n🎯 Multi-Run Analysis Complete!")
+        print(f"Total time: {total_time:.2f} seconds")
+        print(f"Successful trials: {len(self.results)}/{len(self.seeds)}")
+        print(f"Average time per trial: {total_time/len(self.results):.2f} seconds")
+    
+    def calculate_statistics(self):
+        """Calculate mean, std, min, max for all metrics"""
+        if not self.results:
+            return {}
+        
+        stats = {
+            'swarm_stats': {},
+            'additional_stats': {},
+            'timing_stats': {}
+        }
+        
+        # Swarm performance statistics
+        for metric in ['convergence_speed', 'solution_quality', 'learning_efficiency', 'learning_stability', 'overall_fitness']:
+            values = [r['swarm_performance'][metric] for r in self.results]
+            stats['swarm_stats'][metric] = {
+                'mean': float(np.mean(values)),
+                'std': float(np.std(values)),
+                'min': float(np.min(values)),
+                'max': float(np.max(values))
+            }
+        
+        # Additional metrics statistics
+        for metric in ['final_ratio']:
+            values = [r['additional_metrics'][metric] for r in self.results if r['additional_metrics'][metric] != float('inf')]
+            if values:
+                stats['additional_stats'][metric] = {
+                    'mean': float(np.mean(values)),
+                    'std': float(np.std(values)),
+                    'min': float(np.min(values)),
+                    'max': float(np.max(values))
+                }
+        
+        # Timing statistics
+        timing_values = [r['convergence_time_seconds'] for r in self.results]
+        step_values = [r['final_step'] for r in self.results]
+        
+        stats['timing_stats'] = {
+            'convergence_time': {
+                'mean': float(np.mean(timing_values)),
+                'std': float(np.std(timing_values)),
+                'min': float(np.min(timing_values)),
+                'max': float(np.max(timing_values))
+            },
+            'steps_to_convergence': {
+                'mean': float(np.mean(step_values)),
+                'std': float(np.std(step_values)),
+                'min': float(np.min(step_values)),
+                'max': float(np.max(step_values))
+            }
+        }
+        
+        return stats
+    
+    def create_multi_run_visualization(self):
+        """Create 4-panel visualization for multi-run analysis"""
+        if not self.results:
+            print("❌ No results to visualize")
+            return
+        
+        fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+        fig.suptitle(f'ACO Multi-Run Analysis (n={len(self.results)})', fontsize=16, fontweight='bold')
+        
+        # Panel 1: Swarm Performance Metrics (means with error bars)
+        ax1 = axes[0, 0]
+        stats = self.calculate_statistics()
+        
+        metrics = ['convergence_speed', 'solution_quality', 'learning_efficiency', 'learning_stability', 'overall_fitness']
+        metric_labels = ['Convergence\nSpeed', 'Solution\nQuality', 'Learning\nEfficiency', 'Learning\nStability', 'Overall\nFitness']
+        means = [stats['swarm_stats'][metric]['mean'] for metric in metrics]
+        stds = [stats['swarm_stats'][metric]['std'] for metric in metrics]
+        colors = ['lightblue', 'lightgreen', 'lightyellow', 'lightpink', 'lightcoral']
+        
+        bars = ax1.bar(metric_labels, means, yerr=stds, color=colors, alpha=0.7, 
+                      edgecolor='black', capsize=5)
+        ax1.set_title('ACO Performance Metrics', fontweight='bold')
+        ax1.set_ylabel('Score (0-1)')
+        ax1.set_ylim(0, 1)
+        ax1.grid(True, alpha=0.3)
+        
+        # Add value labels
+        for bar, mean in zip(bars, means):
+            height = bar.get_height()
+            ax1.text(bar.get_x() + bar.get_width()/2., height + 0.01,
+                    f'{mean:.3f}', ha='center', va='bottom', fontweight='bold')
+        
+        # Panel 2: Performance Variability (Standard Deviation)
+        ax2 = axes[0, 1]
+        bars2 = ax2.bar(metric_labels, stds, color='gold', alpha=0.7, edgecolor='black')
+        ax2.set_title('Performance Variability (Standard Deviation)', fontweight='bold')
+        ax2.set_ylabel('Standard Deviation')
+        ax2.grid(True, alpha=0.3)
+        
+        # Add value labels
+        for bar, std in zip(bars2, stds):
+            height = bar.get_height()
+            ax2.text(bar.get_x() + bar.get_width()/2., height + max(stds)*0.01,
+                    f'{std:.3f}', ha='center', va='bottom', fontweight='bold')
+        
+        # Panel 3: Convergence Analysis
+        ax3 = axes[1, 0]
+        convergence_times = [r['convergence_time_seconds'] for r in self.results]
+        final_steps = [r['final_step'] for r in self.results]
+        
+        # Scatter plot of convergence time vs steps
+        scatter = ax3.scatter(final_steps, convergence_times, alpha=0.6, s=50, c='green')
+        ax3.set_xlabel('Steps to Convergence')
+        ax3.set_ylabel('Convergence Time (seconds)')
+        ax3.set_title('Convergence Analysis', fontweight='bold')
+        ax3.grid(True, alpha=0.3)
+        
+        # Add trend line
+        z = np.polyfit(final_steps, convergence_times, 1)
+        p = np.poly1d(z)
+        ax3.plot(final_steps, p(final_steps), "r--", alpha=0.8)
+        
+        # Panel 4: Overall Fitness by Run
+        ax4 = axes[1, 1]
+        fitness_values = [r['swarm_performance']['overall_fitness'] for r in self.results]
+        run_numbers = range(1, len(fitness_values) + 1)
+        
+        ax4.plot(run_numbers, fitness_values, 'go-', alpha=0.7, linewidth=1, markersize=4)
+        ax4.axhline(y=np.mean(fitness_values), color='red', linestyle='--', 
+                   label=f'Mean: {np.mean(fitness_values):.3f}')
+        ax4.set_xlabel('Run Number')
+        ax4.set_ylabel('Overall Fitness')
+        ax4.set_title('Overall Fitness by Run', fontweight='bold')
+        ax4.legend()
+        ax4.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        return fig
+    
+    def save_results(self):
+        """Save comprehensive results to JSON file"""
+        if not self.results:
+            print("❌ No results to save")
+            return
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Prepare comprehensive results
+        comprehensive_results = {
+            'metadata': {
+                'timestamp': datetime.now().isoformat(),
+                'config_file': self.config_file,
+                'seeds_used': self.seeds,
+                'successful_runs': len(self.results),
+                'total_attempted': len(self.seeds),
+                'analysis_type': 'ACO_Multi_Run'
+            },
+            'statistics': self.calculate_statistics(),
+            'individual_results': self.results,
+            'configuration': self.config
+        }
+        
+        # Convert NumPy types to native Python types
+        comprehensive_results = convert_numpy_types(comprehensive_results)
+        
+        # Save results
+        results_dir = "results/aco"
+        os.makedirs(results_dir, exist_ok=True)
+        filename = f"{results_dir}/multi_run_aco_{timestamp}.json"
+        
+        with open(filename, 'w') as f:
+            json.dump(comprehensive_results, f, indent=2)
+        
+        print(f"💾 Results saved to: {filename}")
+        return filename
+    
+    def print_summary(self):
+        """Print comprehensive summary of results"""
+        if not self.results:
+            print("❌ No results to summarize")
+            return
+        
+        stats = self.calculate_statistics()
+        
+        print(f"\n{'='*80}")
+        print("                  MULTI-RUN ACO ANALYSIS SUMMARY")
+        print(f"{'='*80}")
+        print(f"Simulations completed: {len(self.results)}")
+        print(f"Configuration: {self.config['max_iterations']} max iterations, target ratio {self.config['target_ratio']}")
+        print(f"Seeds used: {[r['seed'] for r in self.results]}")
+        
+        print(f"\n📊 ACO Performance Statistics:")
+        print(f"{'Metric':<25} {'Mean':<8} {'Std':<8} {'Min':<8} {'Max':<8}")
+        print(f"{'-'*60}")
+        
+        for metric, data in stats['swarm_stats'].items():
+            metric_name = metric.replace('_', ' ').title()
+            print(f"{metric_name:<25} {data['mean']:<8.3f} {data['std']:<8.3f} "
+                  f"{data['min']:<8.3f} {data['max']:<8.3f}")
+        
+        print(f"\n⏱️  Timing Statistics:")
+        timing_stats = stats['timing_stats']
+        print(f"Convergence Time:         {timing_stats['convergence_time']['mean']:.2f}s ± {timing_stats['convergence_time']['std']:.2f}s")
+        print(f"Steps to Convergence:     {timing_stats['steps_to_convergence']['mean']:.1f} ± {timing_stats['steps_to_convergence']['std']:.1f}")
+        
+        if 'final_ratio' in stats['additional_stats']:
+            ratio_stats = stats['additional_stats']['final_ratio']
+            print(f"Final Ratio:              {ratio_stats['mean']:.2f} ± {ratio_stats['std']:.2f}")
+
+def main():
+    """Main function to run multi-trial ACO analysis"""
+    print("🐜 Multi-Run ACO Analysis")
+    print("=" * 50)
+    
+    try:
+        # Create analyzer
+        analyzer = MultiRunACOAnalyzer()
+        
+        # Run multiple trials
+        analyzer.run_multiple_trials()
+        
+        # Print summary
+        analyzer.print_summary()
+        
+        # Save results
+        results_file = analyzer.save_results()
+        
+        # Create and save visualization
+        fig = analyzer.create_multi_run_visualization()
+        if fig:
+            viz_dir = "results/visualizations"
+            os.makedirs(viz_dir, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            viz_filename = f'{viz_dir}/aco_multi_run_{timestamp}.png'
+            fig.savefig(viz_filename, dpi=300, bbox_inches='tight')
+            print(f"📊 Visualization saved to: {viz_filename}")
+            plt.show()
+        
+    except Exception as e:
+        print(f"❌ Error: {e}")
+
+if __name__ == "__main__":
+    main()

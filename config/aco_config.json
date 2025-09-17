@@ -1,0 +1,26 @@
+{
+    "max_iterations": 15,
+    "evaporation_rate": 0.01,
+    "target_ratio": 236.2,
+    "ratio_tolerance": 1.0,
+    "early_steps_for_exploration": 100,
+    "random_seeds": [12345, 67890, 11111, 22222, 33333, 44444, 55555, 66666, 77777, 88888, 99999, 10101, 20202, 30303, 40404, 50505, 60606, 70707, 80808, 90909, 15151, 25252, 35353, 45454, 55556, 65656, 75757, 85858, 95959, 13579],
+    "paths": {
+        "short": {
+            "distance": 1,
+            "initial_pheromone": 1
+        },
+        "long": {
+            "distance": 2,
+            "initial_pheromone": 1
+        }
+    },
+    "visualization": {
+        "show_plots": false,
+        "pause_duration": 0.01
+    },
+    "performance": {
+        "save_results": true,
+        "results_directory": "results/aco"
+    }
+}

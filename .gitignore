@@ -1,0 +1,76 @@
+# Results and output directories
+results/
+*.json
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# API keys and secrets
+.env
+*.key
+secrets/
+
+# Model files and large data
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.model
+models/
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/
+
+# pytest cache
+.pytest_cache/
+
+# Coverage reports
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
