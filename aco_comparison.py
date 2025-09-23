@@ -222,6 +222,36 @@ def print_comparison_summary(aco_data, aco_llm_data):
     print(f"ACO LLM Convergence Time: {aco_llm_conv_time:.3f}s")
     print(f"Time Difference:          {time_diff:+.3f}s ({'ACO LLM slower' if time_diff > 0 else 'ACO LLM faster'})")
     
+    # Enhanced timing comparison (if available)
+    if 'overall_timing' in aco_data['statistics'] and 'overall_timing' in aco_llm_data['statistics']:
+        aco_overall_timing = aco_data['statistics']['overall_timing']
+        aco_llm_overall_timing = aco_llm_data['statistics']['overall_timing']
+        
+        print(f"\n⏰ Overall Analysis Timing:")
+        print(f"ACO Total Time:           {aco_overall_timing['total_duration_minutes']:.2f} min")
+        print(f"ACO LLM Total Time:       {aco_llm_overall_timing['total_duration_minutes']:.2f} min")
+        print(f"ACO Avg Trial:            {aco_overall_timing['average_trial_duration']:.2f}s")
+        print(f"ACO LLM Avg Trial:        {aco_llm_overall_timing['average_trial_duration']:.2f}s")
+        print(f"ACO Trials/min:           {aco_overall_timing['trials_per_minute']:.2f}")
+        print(f"ACO LLM Trials/min:       {aco_llm_overall_timing['trials_per_minute']:.2f}")
+    
+    # Performance statistics comparison (if available)
+    if 'performance_stats' in aco_data['statistics'] and 'performance_stats' in aco_llm_data['statistics']:
+        aco_perf = aco_data['statistics']['performance_stats']
+        aco_llm_perf = aco_llm_data['statistics']['performance_stats']
+        
+        print(f"\n💻 Resource Usage Comparison:")
+        print(f"ACO CPU Usage:            {aco_perf['process_cpu_usage']['mean']:.2f}% ± {aco_perf['process_cpu_usage']['std']:.2f}%")
+        print(f"ACO LLM CPU Usage:        {aco_llm_perf['process_cpu_usage']['mean']:.2f}% ± {aco_llm_perf['process_cpu_usage']['std']:.2f}%")
+        print(f"ACO Memory Usage:         {aco_perf['process_memory_usage_mb']['mean']:.1f}MB ± {aco_perf['process_memory_usage_mb']['std']:.1f}MB")
+        print(f"ACO LLM Memory Usage:     {aco_llm_perf['process_memory_usage_mb']['mean']:.1f}MB ± {aco_llm_perf['process_memory_usage_mb']['std']:.1f}MB")
+        print(f"ACO Peak Memory:          {aco_perf['max_memory_usage_mb']['max']:.1f}MB")
+        print(f"ACO LLM Peak Memory:      {aco_llm_perf['max_memory_usage_mb']['max']:.1f}MB")
+        
+        if 'gpu_load_percent' in aco_perf and 'gpu_load_percent' in aco_llm_perf:
+            print(f"ACO GPU Load:             {aco_perf['gpu_load_percent']['mean']:.1f}% ± {aco_perf['gpu_load_percent']['std']:.1f}%")
+            print(f"ACO LLM GPU Load:         {aco_llm_perf['gpu_load_percent']['mean']:.1f}% ± {aco_llm_perf['gpu_load_percent']['std']:.1f}%")
+    
     # Overall winner
     aco_overall = aco_stats['overall_fitness']['mean']
     aco_llm_overall = aco_llm_stats['overall_fitness']['mean']
@@ -231,9 +261,11 @@ def print_comparison_summary(aco_data, aco_llm_data):
     print(f"ACO LLM Overall Fitness:  {aco_llm_overall:.3f}")
     
     if aco_llm_overall > aco_overall:
-        print(f"🎉 Winner: ACO LLM (+{aco_llm_overall - aco_overall:.3f})")
+        improvement = ((aco_llm_overall - aco_overall) / aco_overall) * 100
+        print(f"🎉 Winner: ACO LLM (+{aco_llm_overall - aco_overall:.3f}, {improvement:+.1f}% improvement)")
     elif aco_overall > aco_llm_overall:
-        print(f"🎉 Winner: ACO (+{aco_overall - aco_llm_overall:.3f})")
+        improvement = ((aco_overall - aco_llm_overall) / aco_llm_overall) * 100
+        print(f"🎉 Winner: ACO (+{aco_overall - aco_llm_overall:.3f}, {improvement:+.1f}% advantage)")
     else:
         print(f"🤝 Result: Tie")
 

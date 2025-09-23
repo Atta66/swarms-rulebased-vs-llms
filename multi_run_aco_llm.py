@@ -9,11 +9,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import psutil
-import GPUtil
 import os
 from datetime import datetime
 import random
 from aco_llm_enhanced import ACOLLMEnhanced
+
+try:
+    import GPUtil
+    GPU_AVAILABLE = True
+except ImportError:
+    GPU_AVAILABLE = False
+    print("⚠️  GPUtil not available - GPU monitoring disabled")
 
 def convert_numpy_types(obj):
     """Convert NumPy types to native Python types for JSON serialization"""
@@ -37,6 +43,12 @@ class MultiRunACOLLMAnalyzer:
         self.results = []
         self.timing_data = []
         self.performance_data = []
+        self.total_start_time = None
+        self.total_end_time = None
+        
+        # Get current process for monitoring
+        self.current_process = psutil.Process()
+        print(f"🔍 Monitoring process PID: {self.current_process.pid}")
         
     def load_config(self):
         """Load configuration including random seeds"""
@@ -46,41 +58,55 @@ class MultiRunACOLLMAnalyzer:
         self.seeds = self.config.get("random_seeds", [12345, 67890, 11111, 22222, 33333])
         print(f"📊 Loaded config: {len(self.seeds)} seeds, {self.config['max_iterations']} max iterations")
         
-    def get_system_performance(self):
-        """Get current system performance metrics"""
+    def get_process_performance(self):
+        """Get current process-specific performance metrics"""
         try:
-            cpu_percent = psutil.cpu_percent(interval=0.1)
-            memory = psutil.virtual_memory()
+            # Process-specific metrics
+            cpu_percent = self.current_process.cpu_percent(interval=0.1)
+            memory_info = self.current_process.memory_info()
+            memory_mb = memory_info.rss / (1024 * 1024)
+            memory_percent = self.current_process.memory_percent()
+            threads = self.current_process.num_threads()
             
-            # GPU monitoring
+            # GPU monitoring (system-wide, but process-aware)
             gpu_load = 0
             gpu_memory = 0
             gpu_temp = 0
+            gpu_memory_used_mb = 0
             
-            try:
-                gpus = GPUtil.getGPUs()
-                if gpus:
-                    gpu = gpus[0]
-                    gpu_load = gpu.load * 100
-                    gpu_memory = gpu.memoryUtil * 100
-                    gpu_temp = gpu.temperature
-            except:
-                pass
+            if GPU_AVAILABLE:
+                try:
+                    gpus = GPUtil.getGPUs()
+                    if gpus:
+                        gpu = gpus[0]
+                        gpu_load = gpu.load * 100
+                        gpu_memory = gpu.memoryUtil * 100
+                        gpu_temp = gpu.temperature
+                        gpu_memory_used_mb = gpu.memoryUsed
+                except Exception as e:
+                    print(f"⚠️  GPU monitoring error: {e}")
             
             return {
-                'cpu_percent': cpu_percent,
-                'memory_mb': memory.used / (1024 * 1024),
-                'memory_percent': memory.percent,
-                'gpu_load': gpu_load,
-                'gpu_memory': gpu_memory,
-                'gpu_temp': gpu_temp,
-                'threads': psutil.cpu_count()
+                'process_cpu_percent': cpu_percent,
+                'process_memory_mb': memory_mb,
+                'process_memory_percent': memory_percent,
+                'process_threads': threads,
+                'process_pid': self.current_process.pid,
+                'num_child_processes': len(self.current_process.children()),
+                'timestamp': time.time(),
+                'gpu_load_percent': gpu_load,
+                'gpu_memory_percent': gpu_memory,
+                'gpu_memory_used_mb': gpu_memory_used_mb,
+                'gpu_temperature': gpu_temp,
+                'gpu_note': 'system_wide_measurement'
             }
         except Exception as e:
             print(f"⚠️  Performance monitoring error: {e}")
             return {
-                'cpu_percent': 0, 'memory_mb': 0, 'memory_percent': 0,
-                'gpu_load': 0, 'gpu_memory': 0, 'gpu_temp': 0, 'threads': 1
+                'process_cpu_percent': 0, 'process_memory_mb': 0, 'process_memory_percent': 0,
+                'process_threads': 1, 'process_pid': 0, 'num_child_processes': 0,
+                'timestamp': time.time(), 'gpu_load_percent': 0, 'gpu_memory_percent': 0,
+                'gpu_memory_used_mb': 0, 'gpu_temperature': 0, 'gpu_note': 'unavailable'
             }
     
     def run_single_aco_llm(self, seed, run_number):
@@ -89,7 +115,7 @@ class MultiRunACOLLMAnalyzer:
         
         # Start timing and performance monitoring
         start_time = time.time()
-        start_perf = self.get_system_performance()
+        start_perf = self.get_process_performance()
         
         try:
             # Initialize ACO LLM
@@ -118,7 +144,7 @@ class MultiRunACOLLMAnalyzer:
         
         # End timing and performance monitoring
         end_time = time.time()
-        end_perf = self.get_system_performance()
+        end_perf = self.get_process_performance()
         simulation_duration = end_time - start_time
         
         # Extract data for metrics calculation
@@ -173,10 +199,15 @@ class MultiRunACOLLMAnalyzer:
             'performance': {
                 'start': start_perf,
                 'end': end_perf,
-                'cpu_change': end_perf['cpu_percent'] - start_perf['cpu_percent'],
-                'memory_change_mb': end_perf['memory_mb'] - start_perf['memory_mb'],
-                'avg_cpu': (start_perf['cpu_percent'] + end_perf['cpu_percent']) / 2,
-                'avg_memory_mb': (start_perf['memory_mb'] + start_perf['memory_mb']) / 2
+                'cpu_change': end_perf['process_cpu_percent'] - start_perf['process_cpu_percent'],
+                'memory_change_mb': end_perf['process_memory_mb'] - start_perf['process_memory_mb'],
+                'avg_cpu': (start_perf['process_cpu_percent'] + end_perf['process_cpu_percent']) / 2,
+                'avg_memory_mb': (start_perf['process_memory_mb'] + start_perf['process_memory_mb']) / 2,
+                'max_memory_mb': max(start_perf['process_memory_mb'], end_perf['process_memory_mb']),
+                'avg_threads': (start_perf['process_threads'] + end_perf['process_threads']) / 2,
+                'avg_gpu_load': (start_perf['gpu_load_percent'] + end_perf['gpu_load_percent']) / 2,
+                'avg_gpu_memory': (start_perf['gpu_memory_percent'] + end_perf['gpu_memory_percent']) / 2,
+                'max_gpu_temp': max(start_perf['gpu_temperature'], end_perf['gpu_temperature'])
             }
         }
         
@@ -292,23 +323,56 @@ class MultiRunACOLLMAnalyzer:
         print(f"Seeds: {self.seeds}")
         print(f"{'='*60}\n")
         
-        start_time = time.time()
+        # Record total analysis start time
+        self.total_start_time = time.time()
+        trial_times = []
         
         for i, seed in enumerate(self.seeds):
             try:
+                trial_start = time.time()
                 result = self.run_single_aco_llm(seed, i + 1)
+                trial_end = time.time()
+                trial_duration = trial_end - trial_start
+                trial_times.append(trial_duration)
+                
+                # Add trial timing to result
+                result['trial_timing'] = {
+                    'duration_seconds': trial_duration,
+                    'start_timestamp': trial_start,
+                    'end_timestamp': trial_end
+                }
+                
                 self.results.append(result)
             except Exception as e:
                 print(f"❌ Error in simulation {i+1} with seed {seed}: {e}")
                 continue
         
-        end_time = time.time()
-        total_time = end_time - start_time
+        # Record total analysis end time
+        self.total_end_time = time.time()
+        total_duration = self.total_end_time - self.total_start_time
+        
+        # Calculate timing statistics
+        if trial_times:
+            self.timing_statistics = {
+                'total_duration_seconds': total_duration,
+                'total_duration_minutes': total_duration / 60,
+                'average_trial_duration': np.mean(trial_times),
+                'shortest_trial_duration': np.min(trial_times),
+                'longest_trial_duration': np.max(trial_times),
+                'trial_duration_std': np.std(trial_times),
+                'trials_per_minute': len(trial_times) / (total_duration / 60) if total_duration > 0 else 0
+            }
         
         print(f"\n🎯 Multi-Run Analysis Complete!")
-        print(f"Total time: {total_time:.2f} seconds")
+        print(f"{'='*60}")
+        print(f"⏱️  TIMING SUMMARY:")
+        print(f"Total time: {total_duration:.2f} seconds ({total_duration/60:.2f} minutes)")
         print(f"Successful trials: {len(self.results)}/{len(self.seeds)}")
-        print(f"Average time per trial: {total_time/len(self.results):.2f} seconds")
+        print(f"Average trial duration: {np.mean(trial_times):.2f} seconds")
+        print(f"Shortest trial: {np.min(trial_times):.2f} seconds")
+        print(f"Longest trial: {np.max(trial_times):.2f} seconds")
+        print(f"Trials per minute: {len(trial_times) / (total_duration / 60):.2f}")
+        print(f"{'='*60}")
     
     def calculate_statistics(self):
         """Calculate mean, std, min, max for all metrics"""
@@ -345,6 +409,7 @@ class MultiRunACOLLMAnalyzer:
         # Timing statistics
         timing_values = [r['convergence_time_seconds'] for r in self.results]
         step_values = [r['final_step'] for r in self.results]
+        trial_timing_values = [r['trial_timing']['duration_seconds'] for r in self.results if 'trial_timing' in r]
         
         stats['timing_stats'] = {
             'convergence_time': {
@@ -360,6 +425,60 @@ class MultiRunACOLLMAnalyzer:
                 'max': float(np.max(step_values))
             }
         }
+        
+        # Add total timing statistics if available
+        if hasattr(self, 'timing_statistics'):
+            stats['overall_timing'] = self.timing_statistics
+        
+        # Performance statistics (process-specific)
+        cpu_values = [r['performance']['avg_cpu'] for r in self.results if 'performance' in r]
+        memory_values = [r['performance']['avg_memory_mb'] for r in self.results if 'performance' in r]
+        max_memory_values = [r['performance']['max_memory_mb'] for r in self.results if 'performance' in r]
+        thread_values = [r['performance']['avg_threads'] for r in self.results if 'performance' in r]
+        gpu_load_values = [r['performance']['avg_gpu_load'] for r in self.results if 'performance' in r]
+        gpu_memory_values = [r['performance']['avg_gpu_memory'] for r in self.results if 'performance' in r]
+        
+        if cpu_values:
+            stats['performance_stats'] = {
+                'process_cpu_usage': {
+                    'mean': float(np.mean(cpu_values)),
+                    'std': float(np.std(cpu_values)),
+                    'min': float(np.min(cpu_values)),
+                    'max': float(np.max(cpu_values))
+                },
+                'process_memory_usage_mb': {
+                    'mean': float(np.mean(memory_values)),
+                    'std': float(np.std(memory_values)),
+                    'min': float(np.min(memory_values)),
+                    'max': float(np.max(memory_values))
+                },
+                'max_memory_usage_mb': {
+                    'mean': float(np.mean(max_memory_values)),
+                    'std': float(np.std(max_memory_values)),
+                    'min': float(np.min(max_memory_values)),
+                    'max': float(np.max(max_memory_values))
+                },
+                'process_threads': {
+                    'mean': float(np.mean(thread_values)),
+                    'std': float(np.std(thread_values)),
+                    'min': float(np.min(thread_values)),
+                    'max': float(np.max(thread_values))
+                }
+            }
+            
+            if gpu_load_values and any(v > 0 for v in gpu_load_values):
+                stats['performance_stats']['gpu_load_percent'] = {
+                    'mean': float(np.mean(gpu_load_values)),
+                    'std': float(np.std(gpu_load_values)),
+                    'min': float(np.min(gpu_load_values)),
+                    'max': float(np.max(gpu_load_values))
+                }
+                stats['performance_stats']['gpu_memory_percent'] = {
+                    'mean': float(np.mean(gpu_memory_values)),
+                    'std': float(np.std(gpu_memory_values)),
+                    'min': float(np.min(gpu_memory_values)),
+                    'max': float(np.max(gpu_memory_values))
+                }
         
         return stats
     
@@ -506,11 +625,33 @@ class MultiRunACOLLMAnalyzer:
         
         print(f"\n⏱️  Timing Statistics:")
         timing_stats = stats['timing_stats']
-        print(f"Convergence Time:         {timing_stats['convergence_time']['mean']:.2f}s ± {timing_stats['convergence_time']['std']:.2f}s")
+        print(f"Simulation Time:          {timing_stats['convergence_time']['mean']:.2f}s ± {timing_stats['convergence_time']['std']:.2f}s")
         print(f"Steps to Convergence:     {timing_stats['steps_to_convergence']['mean']:.1f} ± {timing_stats['steps_to_convergence']['std']:.1f}")
+        
+        if 'overall_timing' in stats:
+            ot = stats['overall_timing']
+            print(f"\n⏰ Overall Analysis Timing:")
+            print(f"Total analysis time:      {ot['total_duration_seconds']:.2f}s ({ot['total_duration_minutes']:.2f} min)")
+            print(f"Average trial duration:   {ot['average_trial_duration']:.2f}s")
+            print(f"Shortest trial:           {ot['shortest_trial_duration']:.2f}s")
+            print(f"Longest trial:            {ot['longest_trial_duration']:.2f}s")
+            print(f"Trials per minute:        {ot['trials_per_minute']:.2f}")
+        
+        if 'performance_stats' in stats:
+            perf_stats = stats['performance_stats']
+            print(f"\n💻 Process Performance Statistics:")
+            print(f"CPU Usage (process):      {perf_stats['process_cpu_usage']['mean']:.2f}% ± {perf_stats['process_cpu_usage']['std']:.2f}%")
+            print(f"Memory Usage (process):   {perf_stats['process_memory_usage_mb']['mean']:.1f}MB ± {perf_stats['process_memory_usage_mb']['std']:.1f}MB")
+            print(f"Peak Memory (process):    {perf_stats['max_memory_usage_mb']['max']:.1f}MB")
+            print(f"Average Threads:          {perf_stats['process_threads']['mean']:.1f}")
+            
+            if 'gpu_load_percent' in perf_stats:
+                print(f"GPU Load:                 {perf_stats['gpu_load_percent']['mean']:.1f}% ± {perf_stats['gpu_load_percent']['std']:.1f}%")
+                print(f"GPU Memory:               {perf_stats['gpu_memory_percent']['mean']:.1f}% ± {perf_stats['gpu_memory_percent']['std']:.1f}%")
         
         if 'final_ratio' in stats['additional_stats']:
             ratio_stats = stats['additional_stats']['final_ratio']
+            print(f"\n📈 Final Ratio Statistics:")
             print(f"Final Ratio:              {ratio_stats['mean']:.2f} ± {ratio_stats['std']:.2f}")
 
 def main():
