@@ -50,7 +50,7 @@ def load_aco_llm_results():
 
 def create_comparison_visualization(aco_data, aco_llm_data):
     """Create side-by-side comparison visualization"""
-    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
     fig.suptitle('ACO vs ACO LLM Performance Comparison', fontsize=16, fontweight='bold')
     
     # Extract statistics
@@ -78,14 +78,20 @@ def create_comparison_visualization(aco_data, aco_llm_data):
     ax1.set_xticklabels(metric_labels, rotation=45, ha='right')
     ax1.legend()
     ax1.grid(True, alpha=0.3)
-    ax1.set_ylim(0, 1)
+    ax1.set_ylim(0, 1.1)  # Increased upper limit to provide space for labels
     
-    # Add value labels
+    # Add value labels with better positioning
     for bars, means in [(bars1, aco_means), (bars2, aco_llm_means)]:
         for bar, mean in zip(bars, means):
             height = bar.get_height()
-            ax1.text(bar.get_x() + bar.get_width()/2., height + 0.01,
-                    f'{mean:.3f}', ha='center', va='bottom', fontsize=8)
+            # Position label below the bar if it's too high, otherwise above
+            if height > 0.95:
+                ax1.text(bar.get_x() + bar.get_width()/2., height - 0.03,
+                        f'{mean:.3f}', ha='center', va='top', fontsize=8, 
+                        bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.8))
+            else:
+                ax1.text(bar.get_x() + bar.get_width()/2., height + 0.01,
+                        f'{mean:.3f}', ha='center', va='bottom', fontsize=8)
     
     # Panel 2: Standard Deviation Comparison
     ax2 = axes[0, 1]
@@ -93,7 +99,7 @@ def create_comparison_visualization(aco_data, aco_llm_data):
     aco_llm_stds = [aco_llm_stats[metric]['std'] for metric in metrics]
     
     bars1 = ax2.bar(x - width/2, aco_stds, width, label='ACO', color='lightgreen', alpha=0.8)
-    bars2 = ax2.bar(x + width/2, aco_llm_stds, width, label='ACO LLM', color='lightyellow', alpha=0.8)
+    bars2 = ax2.bar(x + width/2, aco_llm_stds, width, label='ACO LLM', color='orange', alpha=0.8)
     
     ax2.set_xlabel('Metrics')
     ax2.set_ylabel('Standard Deviation')
@@ -103,76 +109,33 @@ def create_comparison_visualization(aco_data, aco_llm_data):
     ax2.legend()
     ax2.grid(True, alpha=0.3)
     
-    # Panel 3: Timing Comparison
-    ax3 = axes[0, 2]
-    aco_timing = aco_data['statistics']['timing_stats']
-    aco_llm_timing = aco_llm_data['statistics']['timing_stats']
-    
-    timing_metrics = ['Convergence Time (s)', 'Steps to Convergence']
-    aco_timing_values = [aco_timing['convergence_time']['mean'], aco_timing['steps_to_convergence']['mean']]
-    aco_llm_timing_values = [aco_llm_timing['convergence_time']['mean'], aco_llm_timing['steps_to_convergence']['mean']]
-    
-    x_timing = np.arange(len(timing_metrics))
-    bars1 = ax3.bar(x_timing - width/2, aco_timing_values, width, label='ACO', color='lightblue', alpha=0.8)
-    bars2 = ax3.bar(x_timing + width/2, aco_llm_timing_values, width, label='ACO LLM', color='lightcoral', alpha=0.8)
-    
-    ax3.set_xlabel('Timing Metrics')
-    ax3.set_ylabel('Value')
-    ax3.set_title('Timing Performance')
-    ax3.set_xticks(x_timing)
-    ax3.set_xticklabels(timing_metrics)
-    ax3.legend()
-    ax3.grid(True, alpha=0.3)
-    
-    # Panel 4: Overall Fitness Distribution
-    ax4 = axes[1, 0]
+    # Panel 3: Overall Fitness Distribution
+    ax3 = axes[1, 0]
     aco_fitness = [r['swarm_performance']['overall_fitness'] for r in aco_data['individual_results']]
     aco_llm_fitness = [r['swarm_performance']['overall_fitness'] for r in aco_llm_data['individual_results']]
     
-    ax4.hist(aco_fitness, bins=10, alpha=0.6, label='ACO', color='lightblue', density=True)
-    ax4.hist(aco_llm_fitness, bins=10, alpha=0.6, label='ACO LLM', color='lightcoral', density=True)
-    ax4.set_xlabel('Overall Fitness')
-    ax4.set_ylabel('Density')
-    ax4.set_title('Overall Fitness Distribution')
-    ax4.legend()
-    ax4.grid(True, alpha=0.3)
+    ax3.hist(aco_fitness, bins=10, alpha=0.6, label='ACO', color='lightblue', density=True)
+    ax3.hist(aco_llm_fitness, bins=10, alpha=0.6, label='ACO LLM', color='lightcoral', density=True)
+    ax3.set_xlabel('Overall Fitness')
+    ax3.set_ylabel('Density')
+    ax3.set_title('Overall Fitness Distribution')
+    ax3.legend()
+    ax3.grid(True, alpha=0.3)
     
-    # Panel 5: Convergence Speed vs Solution Quality
-    ax5 = axes[1, 1]
+    # Panel 4: Convergence Speed vs Solution Quality
+    ax4 = axes[1, 1]
     aco_conv_speed = [r['swarm_performance']['convergence_speed'] for r in aco_data['individual_results']]
     aco_sol_quality = [r['swarm_performance']['solution_quality'] for r in aco_data['individual_results']]
     aco_llm_conv_speed = [r['swarm_performance']['convergence_speed'] for r in aco_llm_data['individual_results']]
     aco_llm_sol_quality = [r['swarm_performance']['solution_quality'] for r in aco_llm_data['individual_results']]
     
-    ax5.scatter(aco_conv_speed, aco_sol_quality, alpha=0.6, label='ACO', color='blue', s=30)
-    ax5.scatter(aco_llm_conv_speed, aco_llm_sol_quality, alpha=0.6, label='ACO LLM', color='red', s=30)
-    ax5.set_xlabel('Convergence Speed')
-    ax5.set_ylabel('Solution Quality')
-    ax5.set_title('Speed vs Quality Trade-off')
-    ax5.legend()
-    ax5.grid(True, alpha=0.3)
-    
-    # Panel 6: Performance Summary Table
-    ax6 = axes[1, 2]
-    ax6.axis('off')
-    
-    # Create summary table
-    summary_data = []
-    for metric in metrics:
-        aco_val = f"{aco_stats[metric]['mean']:.3f} ± {aco_stats[metric]['std']:.3f}"
-        aco_llm_val = f"{aco_llm_stats[metric]['mean']:.3f} ± {aco_llm_stats[metric]['std']:.3f}"
-        diff = aco_llm_stats[metric]['mean'] - aco_stats[metric]['mean']
-        diff_str = f"{diff:+.3f}"
-        summary_data.append([metric.replace('_', ' ').title(), aco_val, aco_llm_val, diff_str])
-    
-    table = ax6.table(cellText=summary_data,
-                     colLabels=['Metric', 'ACO', 'ACO LLM', 'Difference'],
-                     cellLoc='center',
-                     loc='center')
-    table.auto_set_font_size(False)
-    table.set_fontsize(8)
-    table.scale(1, 1.5)
-    ax6.set_title('Performance Summary', fontweight='bold')
+    ax4.scatter(aco_conv_speed, aco_sol_quality, alpha=0.6, label='ACO', color='blue', s=30)
+    ax4.scatter(aco_llm_conv_speed, aco_llm_sol_quality, alpha=0.6, label='ACO LLM', color='red', s=30)
+    ax4.set_xlabel('Convergence Speed')
+    ax4.set_ylabel('Solution Quality')
+    ax4.set_title('Speed vs Quality Trade-off')
+    ax4.legend()
+    ax4.grid(True, alpha=0.3)
     
     plt.tight_layout()
     return fig
