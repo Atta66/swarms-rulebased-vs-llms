@@ -382,7 +382,7 @@ class ComparisonAnalyzer:
                 print(f"  {metric.replace('_', ' ').title():<20}: Classic={classic_mean:.3f}, LLM={llm_mean:.3f}, Δ={diff:+.3f}")
 
     def visualize_comparison(self):
-        """Create visualizations comparing classic and LLM results"""
+        """Create multi-run style visualizations comparing classic and LLM results"""
         if not self.classic_results or not self.llm_results:
             print("No results to visualize")
             return
@@ -390,36 +390,139 @@ class ComparisonAnalyzer:
         classic_swarm = self.extract_swarm_metrics(self.classic_results)
         llm_swarm = self.extract_swarm_metrics(self.llm_results)
         
-        # Create comparison plots
-        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-        fig.suptitle('Classic vs LLM Boids Performance Comparison', fontsize=16)
+        # Calculate statistics for both systems
+        classic_stats = self.calculate_metrics_statistics(classic_swarm)
+        llm_stats = self.calculate_metrics_statistics(llm_swarm)
         
+        # Create 4-panel comparison visualization
+        fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+        fig.suptitle(f'Classic vs LLM Boids Multi-Run Comparison (n={len(self.classic_results)})', 
+                     fontsize=16, fontweight='bold')
+        
+        # Panel 1: Swarm Performance Metrics (Bar chart with error bars)
+        ax1 = axes[0, 0]
         metrics = ['cohesion', 'separation', 'alignment', 'overall_fitness']
-        axes_flat = axes.flatten()
+        metric_labels = ['Cohesion', 'Separation', 'Alignment', 'Overall Fitness']
         
-        for i, metric in enumerate(metrics):
-            if i >= len(axes_flat):
-                break
-                
-            ax = axes_flat[i]
-            
+        classic_means = [classic_stats[metric]['mean'] for metric in metrics]
+        classic_stds = [classic_stats[metric]['std'] for metric in metrics]
+        llm_means = [llm_stats[metric]['mean'] for metric in metrics]
+        llm_stds = [llm_stats[metric]['std'] for metric in metrics]
+        
+        x = np.arange(len(metrics))
+        width = 0.35
+        
+        bars1 = ax1.bar(x - width/2, classic_means, width, yerr=classic_stds, 
+                       label='Classic', color='lightblue', alpha=0.8, capsize=5, edgecolor='black')
+        bars2 = ax1.bar(x + width/2, llm_means, width, yerr=llm_stds,
+                       label='LLM', color='lightcoral', alpha=0.8, capsize=5, edgecolor='black')
+        
+        ax1.set_title('Swarm Performance Metrics', fontweight='bold')
+        ax1.set_ylabel('Score (0-1)')
+        ax1.set_xticks(x)
+        ax1.set_xticklabels(metric_labels)
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+        ax1.set_ylim(0, 1.1)  # Increased upper limit to provide space for labels
+        
+        # Add value labels on bars with better positioning
+        for bars, means in [(bars1, classic_means), (bars2, llm_means)]:
+            for bar, mean in zip(bars, means):
+                height = bar.get_height()
+                # Position label below the bar if it's too high, otherwise above
+                if height > 0.95:
+                    ax1.text(bar.get_x() + bar.get_width()/2., height - 0.05,
+                            f'{mean:.3f}', ha='center', va='top', fontsize=8, 
+                            fontweight='bold', color='white',
+                            bbox=dict(boxstyle='round,pad=0.2', facecolor='black', alpha=0.7))
+                else:
+                    ax1.text(bar.get_x() + bar.get_width()/2., height + 0.02,
+                            f'{mean:.3f}', ha='center', va='bottom', fontsize=8, fontweight='bold')
+        
+        # Panel 2: Agent Consistency Scores (if available)
+        ax2 = axes[0, 1]
+        # Extract individual behavior metrics for consistency analysis
+        behavior_metrics = ['cohesion', 'separation', 'alignment']  # Same order as first graph
+        classic_consistency = []
+        llm_consistency = []
+        
+        for metric in behavior_metrics:
             if metric in classic_swarm and metric in llm_swarm:
-                # Box plot comparison
-                data = [classic_swarm[metric], llm_swarm[metric]]
-                labels = ['Classic', 'LLM']
-                
-                bp = ax.boxplot(data, labels=labels, patch_artist=True)
-                bp['boxes'][0].set_facecolor('lightblue')
-                bp['boxes'][1].set_facecolor('lightcoral')
-                
-                # Make median lines more visible
-                for median in bp['medians']:
-                    median.set_color('darkred')
-                    median.set_linewidth(2)
-                
-                ax.set_title(f'{metric.replace("_", " ").title()} Comparison')
-                ax.set_ylabel('Score')
-                ax.grid(True, alpha=0.3)
+                # Calculate consistency as 1 - coefficient of variation
+                classic_cv = classic_stats[metric]['std'] / classic_stats[metric]['mean'] if classic_stats[metric]['mean'] > 0 else 1
+                llm_cv = llm_stats[metric]['std'] / llm_stats[metric]['mean'] if llm_stats[metric]['mean'] > 0 else 1
+                classic_consistency.append(max(0, 1 - classic_cv))
+                llm_consistency.append(max(0, 1 - llm_cv))
+        
+        if classic_consistency and llm_consistency:
+            x_cons = np.arange(len(behavior_metrics))
+            bars1 = ax2.bar(x_cons - width/2, classic_consistency, width, 
+                           label='Classic', color='lightblue', alpha=0.8, edgecolor='black')
+            bars2 = ax2.bar(x_cons + width/2, llm_consistency, width,
+                           label='LLM', color='lightcoral', alpha=0.8, edgecolor='black')
+            
+            ax2.set_title('Agent Consistency Scores', fontweight='bold')
+            ax2.set_ylabel('Consistency (0-1)')
+            ax2.set_xticks(x_cons)
+            ax2.set_xticklabels([m.title() for m in behavior_metrics])
+            ax2.legend()
+            ax2.grid(True, alpha=0.3)
+            ax2.set_ylim(0, 1)
+            
+            # Add value labels
+            for bars, values in [(bars1, classic_consistency), (bars2, llm_consistency)]:
+                for bar, value in zip(bars, values):
+                    height = bar.get_height()
+                    ax2.text(bar.get_x() + bar.get_width()/2., height + 0.02,
+                            f'{value:.3f}', ha='center', va='bottom', fontsize=8, fontweight='bold')
+        
+        # Panel 3: Performance Variability (Standard Deviation)
+        ax3 = axes[1, 0]
+        bars1 = ax3.bar(x - width/2, classic_stds, width, 
+                       label='Classic', color='gold', alpha=0.8, edgecolor='black')
+        bars2 = ax3.bar(x + width/2, llm_stds, width,
+                       label='LLM', color='orange', alpha=0.8, edgecolor='black')
+        
+        ax3.set_title('Performance Variability (Standard Deviation)', fontweight='bold')
+        ax3.set_ylabel('Standard Deviation')
+        ax3.set_xticks(x)
+        ax3.set_xticklabels(metric_labels)
+        ax3.legend()
+        ax3.grid(True, alpha=0.3)
+        
+        # Add value labels
+        for bars, stds in [(bars1, classic_stds), (bars2, llm_stds)]:
+            for bar, std in zip(bars, stds):
+                height = bar.get_height()
+                ax3.text(bar.get_x() + bar.get_width()/2., height + max(classic_stds + llm_stds)*0.01,
+                        f'{std:.3f}', ha='center', va='bottom', fontsize=8, fontweight='bold')
+        
+        # Panel 4: Overall Fitness by Run
+        ax4 = axes[1, 1]
+        classic_fitness = classic_swarm.get('overall_fitness', [])
+        llm_fitness = llm_swarm.get('overall_fitness', [])
+        
+        run_numbers = range(1, len(classic_fitness) + 1)
+        
+        ax4.plot(run_numbers, classic_fitness, 'bo-', alpha=0.7, linewidth=1, 
+                markersize=4, label='Classic')
+        ax4.plot(run_numbers, llm_fitness, 'ro-', alpha=0.7, linewidth=1, 
+                markersize=4, label='LLM')
+        
+        # Add mean lines
+        classic_mean = np.mean(classic_fitness)
+        llm_mean = np.mean(llm_fitness)
+        ax4.axhline(y=classic_mean, color='blue', linestyle='--', alpha=0.7,
+                   label=f'Classic Mean: {classic_mean:.3f}')
+        ax4.axhline(y=llm_mean, color='red', linestyle='--', alpha=0.7,
+                   label=f'LLM Mean: {llm_mean:.3f}')
+        
+        ax4.set_xlabel('Run Number')
+        ax4.set_ylabel('Overall Fitness')
+        ax4.set_title('Overall Fitness by Run', fontweight='bold')
+        ax4.legend()
+        ax4.grid(True, alpha=0.3)
+        ax4.set_ylim(0, 1)
         
         plt.tight_layout()
         
@@ -430,6 +533,19 @@ class ComparisonAnalyzer:
         plt.savefig(viz_filename, dpi=300, bbox_inches='tight')
         print(f"📊 Visualization saved to: {viz_filename}")
         plt.show()
+    
+    def calculate_metrics_statistics(self, swarm_metrics):
+        """Calculate statistics for swarm metrics"""
+        stats = {}
+        for metric, values in swarm_metrics.items():
+            if values:
+                stats[metric] = {
+                    'mean': np.mean(values),
+                    'std': np.std(values),
+                    'min': np.min(values),
+                    'max': np.max(values)
+                }
+        return stats
 
     def save_comparison_results(self):
         """Save comparison results to file"""
