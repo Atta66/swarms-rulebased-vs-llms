@@ -26,3 +26,20 @@ Comparison of traditional rule-based swarms and LLM-driven swarms using Boids an
 
 ### Evaporation Agent Prompt
 > You are a pheromone evaporation agent. The paths are given by `{paths}`. Based on the evaporation rate `{evaporation_rate}`, apply evaporation to the pheromone levels and return the pheromone levels in the format: `[x, y]` where `x` corresponds to `short` and `y` corresponds to `long`. No additional text.
+
+## Results
+
+Detailed comparisons between classical and GPT-based implementations of Boids and ACO are presented in the accompanying paper.  
+Here, we provide supplementary results comparing **classical** and **local LLM-based** versions to illustrate relative performance.  
+All local experiments were conducted using the **Qwen 2.5 Instruct (14B)** model.
+
+### Boids
+<img width="4470" height="2955" alt="classic_vs_llm_comparison_20251009_114508" src="https://github.com/user-attachments/assets/b45e780d-7eae-45bc-981c-30b1bdd682c6" />
+
+In the same configuration and environment, the **local LLM** achieved an overall fitness score of **0.470**, compared to **0.560** for the **GPT-based** implementation.
+
+### ACO
+<img width="3570" height="2955" alt="aco_vs_aco_llm_comparison_20250924_124235" src="https://github.com/user-attachments/assets/2415a639-c69e-4162-8867-6a2139bc511d" />
+
+Under identical conditions, the **local LLM** achieved an overall fitness score of **0.558**, while the **GPT-based** implementation reached **0.862**.
+
