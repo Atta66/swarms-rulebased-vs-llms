@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-ACO vs ACO LLM Comparison Framework
+ACO Performance Comparison Tool
+Compares Regular ACO vs LLM-Enhanced ACO performance metrics
 """
 
 import json
@@ -8,11 +9,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import os
+import sys
 from datetime import datetime
+
+# Add parent directory to path to import from results folders
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def load_aco_results():
     """Load the latest ACO results"""
-    results_dir = "results/aco"
+    results_dir = "../results/aco"
     if not os.path.exists(results_dir):
         print(f"❌ No ACO results found in {results_dir}")
         return None
@@ -23,15 +28,18 @@ def load_aco_results():
         print("❌ No ACO results files found")
         return None
     
-    latest_file = max(aco_files)
+    # Sort by modification time to get the newest
+    aco_files_with_time = [(f, os.path.getmtime(os.path.join(results_dir, f))) for f in aco_files]
+    latest_file = max(aco_files_with_time, key=lambda x: x[1])[0]
     filepath = os.path.join(results_dir, latest_file)
+    print(f"📄 Using ACO results: {latest_file}")
     
     with open(filepath, 'r') as f:
         return json.load(f)
 
 def load_aco_llm_results():
     """Load the latest ACO LLM results"""
-    results_dir = "results/aco_llm"
+    results_dir = "../results/aco_llm"
     if not os.path.exists(results_dir):
         print(f"❌ No ACO LLM results found in {results_dir}")
         return None
@@ -42,100 +50,57 @@ def load_aco_llm_results():
         print("❌ No ACO LLM results files found")
         return None
     
-    latest_file = max(aco_llm_files)
+    # Sort by modification time to get the newest
+    aco_llm_files_with_time = [(f, os.path.getmtime(os.path.join(results_dir, f))) for f in aco_llm_files]
+    latest_file = max(aco_llm_files_with_time, key=lambda x: x[1])[0]
     filepath = os.path.join(results_dir, latest_file)
+    print(f"📄 Using ACO LLM results: {latest_file}")
     
     with open(filepath, 'r') as f:
         return json.load(f)
 
 def create_comparison_visualization(aco_data, aco_llm_data):
-    """Create side-by-side comparison visualization"""
-    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-    fig.suptitle('ACO vs ACO LLM Performance Comparison', fontsize=16, fontweight='bold')
+    """Create single mean performance comparison with error bars"""
+    fig, ax = plt.subplots(figsize=(12, 8))
     
     # Extract statistics
     aco_stats = aco_data['statistics']['swarm_stats']
     aco_llm_stats = aco_llm_data['statistics']['swarm_stats']
     
-    metrics = ['convergence_speed', 'solution_quality', 'learning_efficiency', 'learning_stability', 'overall_fitness']
-    metric_labels = ['Convergence\nSpeed', 'Solution\nQuality', 'Learning\nEfficiency', 'Learning\nStability', 'Overall\nFitness']
+    metrics = ['convergence_speed', 'solution_quality', 'learning_efficiency', 'learning_stability']
+    metric_labels = ['Convergence\nSpeed', 'Solution\nQuality', 'Learning\nEfficiency', 'Learning\nStability']
     
-    # Panel 1: Mean Performance Comparison
-    ax1 = axes[0, 0]
+    # Extract means and standard deviations for error bars
     aco_means = [aco_stats[metric]['mean'] for metric in metrics]
+    aco_stds = [aco_stats[metric]['std'] for metric in metrics]
     aco_llm_means = [aco_llm_stats[metric]['mean'] for metric in metrics]
+    aco_llm_stds = [aco_llm_stats[metric]['std'] for metric in metrics]
     
     x = np.arange(len(metrics))
     width = 0.35
     
-    bars1 = ax1.bar(x - width/2, aco_means, width, label='ACO', color='lightblue', alpha=0.8)
-    bars2 = ax1.bar(x + width/2, aco_llm_means, width, label='ACO LLM', color='lightcoral', alpha=0.8)
+    # Create bars with error bars
+    bars1 = ax.bar(x - width/2, aco_means, width, yerr=aco_stds, 
+                   label='ACO', color='lightblue', alpha=0.7, 
+                   edgecolor='black', capsize=5)
+    bars2 = ax.bar(x + width/2, aco_llm_means, width, yerr=aco_llm_stds,
+                   label='ACO LLM', color='lightcoral', alpha=0.7, 
+                   edgecolor='black', capsize=5)
     
-    ax1.set_xlabel('Metrics')
-    ax1.set_ylabel('Performance Score')
-    ax1.set_title('Mean Performance Comparison')
-    ax1.set_xticks(x)
-    ax1.set_xticklabels(metric_labels, rotation=45, ha='right')
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
-    ax1.set_ylim(0, 1.1)  # Increased upper limit to provide space for labels
+    ax.set_xlabel('Performance Metrics', fontsize=14)
+    ax.set_ylabel('Performance Score', fontsize=14)
+    ax.set_xticks(x)
+    ax.set_xticklabels(metric_labels, fontsize=12)
+    ax.legend(fontsize=12)
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim(0, 1.0)
     
-    # Add value labels with better positioning
+    # Add value labels on bars
     for bars, means in [(bars1, aco_means), (bars2, aco_llm_means)]:
         for bar, mean in zip(bars, means):
             height = bar.get_height()
-            # Position label below the bar if it's too high, otherwise above
-            if height > 0.95:
-                ax1.text(bar.get_x() + bar.get_width()/2., height - 0.03,
-                        f'{mean:.3f}', ha='center', va='top', fontsize=8, 
-                        bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.8))
-            else:
-                ax1.text(bar.get_x() + bar.get_width()/2., height + 0.01,
-                        f'{mean:.3f}', ha='center', va='bottom', fontsize=8)
-    
-    # Panel 2: Standard Deviation Comparison
-    ax2 = axes[0, 1]
-    aco_stds = [aco_stats[metric]['std'] for metric in metrics]
-    aco_llm_stds = [aco_llm_stats[metric]['std'] for metric in metrics]
-    
-    bars1 = ax2.bar(x - width/2, aco_stds, width, label='ACO', color='lightgreen', alpha=0.8)
-    bars2 = ax2.bar(x + width/2, aco_llm_stds, width, label='ACO LLM', color='orange', alpha=0.8)
-    
-    ax2.set_xlabel('Metrics')
-    ax2.set_ylabel('Standard Deviation')
-    ax2.set_title('Variability Comparison')
-    ax2.set_xticks(x)
-    ax2.set_xticklabels(metric_labels, rotation=45, ha='right')
-    ax2.legend()
-    ax2.grid(True, alpha=0.3)
-    
-    # Panel 3: Overall Fitness Distribution
-    ax3 = axes[1, 0]
-    aco_fitness = [r['swarm_performance']['overall_fitness'] for r in aco_data['individual_results']]
-    aco_llm_fitness = [r['swarm_performance']['overall_fitness'] for r in aco_llm_data['individual_results']]
-    
-    ax3.hist(aco_fitness, bins=10, alpha=0.6, label='ACO', color='lightblue', density=True)
-    ax3.hist(aco_llm_fitness, bins=10, alpha=0.6, label='ACO LLM', color='lightcoral', density=True)
-    ax3.set_xlabel('Overall Fitness')
-    ax3.set_ylabel('Density')
-    ax3.set_title('Overall Fitness Distribution')
-    ax3.legend()
-    ax3.grid(True, alpha=0.3)
-    
-    # Panel 4: Convergence Speed vs Solution Quality
-    ax4 = axes[1, 1]
-    aco_conv_speed = [r['swarm_performance']['convergence_speed'] for r in aco_data['individual_results']]
-    aco_sol_quality = [r['swarm_performance']['solution_quality'] for r in aco_data['individual_results']]
-    aco_llm_conv_speed = [r['swarm_performance']['convergence_speed'] for r in aco_llm_data['individual_results']]
-    aco_llm_sol_quality = [r['swarm_performance']['solution_quality'] for r in aco_llm_data['individual_results']]
-    
-    ax4.scatter(aco_conv_speed, aco_sol_quality, alpha=0.6, label='ACO', color='blue', s=30)
-    ax4.scatter(aco_llm_conv_speed, aco_llm_sol_quality, alpha=0.6, label='ACO LLM', color='red', s=30)
-    ax4.set_xlabel('Convergence Speed')
-    ax4.set_ylabel('Solution Quality')
-    ax4.set_title('Speed vs Quality Trade-off')
-    ax4.legend()
-    ax4.grid(True, alpha=0.3)
+            ax.text(bar.get_x() + bar.get_width()/2., height + 0.01,
+                    f'{mean:.3f}', ha='center', va='bottom', fontsize=10, fontweight='bold')
     
     plt.tight_layout()
     return fig
@@ -143,7 +108,7 @@ def create_comparison_visualization(aco_data, aco_llm_data):
 def print_comparison_summary(aco_data, aco_llm_data):
     """Print detailed comparison summary"""
     print(f"\n{'='*80}")
-    print("                     ACO vs ACO LLM COMPARISON SUMMARY")
+    print("                  ACO vs LLM-ACO PERFORMANCE COMPARISON")
     print(f"{'='*80}")
     
     # Basic info
@@ -174,16 +139,21 @@ def print_comparison_summary(aco_data, aco_llm_data):
     
     # Timing comparison
     print(f"\n⏱️  Timing Comparison:")
-    aco_timing = aco_data['statistics']['timing_stats']
-    aco_llm_timing = aco_llm_data['statistics']['timing_stats']
     
-    aco_conv_time = aco_timing['convergence_time']['mean']
-    aco_llm_conv_time = aco_llm_timing['convergence_time']['mean']
-    time_diff = aco_llm_conv_time - aco_conv_time
-    
-    print(f"ACO Convergence Time:     {aco_conv_time:.3f}s")
-    print(f"ACO LLM Convergence Time: {aco_llm_conv_time:.3f}s")
-    print(f"Time Difference:          {time_diff:+.3f}s ({'ACO LLM slower' if time_diff > 0 else 'ACO LLM faster'})")
+    # Check if timing stats are available
+    if 'timing_stats' in aco_data['statistics'] and 'timing_stats' in aco_llm_data['statistics']:
+        aco_timing = aco_data['statistics']['timing_stats']
+        aco_llm_timing = aco_llm_data['statistics']['timing_stats']
+        
+        aco_conv_time = aco_timing['convergence_time']['mean']
+        aco_llm_conv_time = aco_llm_timing['convergence_time']['mean']
+        time_diff = aco_llm_conv_time - aco_conv_time
+        
+        print(f"ACO Convergence Time:     {aco_conv_time:.3f}s")
+        print(f"ACO LLM Convergence Time: {aco_llm_conv_time:.3f}s")
+        print(f"Time Difference:          {time_diff:+.3f}s ({'ACO LLM slower' if time_diff > 0 else 'ACO LLM faster'})")
+    else:
+        print("⚠️  Timing statistics not available for comparison")
     
     # Enhanced timing comparison (if available)
     if 'overall_timing' in aco_data['statistics'] and 'overall_timing' in aco_llm_data['statistics']:
@@ -234,7 +204,7 @@ def print_comparison_summary(aco_data, aco_llm_data):
 
 def main():
     """Main comparison function"""
-    print("🔄 ACO vs ACO LLM Comparison Framework")
+    print("🔄 ACO Performance Comparison Tool")
     print("=" * 50)
     
     # Load results
@@ -269,10 +239,10 @@ def main():
     fig = create_comparison_visualization(aco_data, aco_llm_data)
     
     # Save visualization
-    viz_dir = "results/visualizations"
+    viz_dir = "../results/visualizations"
     os.makedirs(viz_dir, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    viz_filename = f'{viz_dir}/aco_vs_aco_llm_comparison_{timestamp}.png'
+    viz_filename = f'{viz_dir}/aco_performance_comparison_{timestamp}.png'
     fig.savefig(viz_filename, dpi=300, bbox_inches='tight')
     print(f"📊 Comparison visualization saved to: {viz_filename}")
     

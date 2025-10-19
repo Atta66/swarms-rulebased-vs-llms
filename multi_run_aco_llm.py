@@ -55,8 +55,28 @@ class MultiRunACOLLMAnalyzer:
         with open(self.config_file, 'r') as f:
             self.config = json.load(f)
         
-        self.seeds = self.config.get("random_seeds", [12345, 67890, 11111, 22222, 33333])
-        print(f"📊 Loaded config: {len(self.seeds)} seeds, {self.config['max_iterations']} max iterations")
+        # Get number of trials from config (matching regular ACO)
+        num_trials = self.config.get("num_trials", 30)
+        
+        # Generate seeds if not enough provided
+        predefined_seeds = self.config.get("random_seeds", [12345, 67890, 11111, 22222, 33333])
+        
+        if len(predefined_seeds) >= num_trials:
+            self.seeds = predefined_seeds[:num_trials]
+        else:
+            # Use predefined seeds and generate additional ones
+            self.seeds = predefined_seeds.copy()
+            np.random.seed(42)  # For reproducible seed generation
+            while len(self.seeds) < num_trials:
+                new_seed = np.random.randint(10000, 99999)
+                if new_seed not in self.seeds:
+                    self.seeds.append(new_seed)
+        
+        print(f"📊 Loaded config: {len(self.seeds)} trials, {self.config['max_iterations']} iterations per trial")
+        if len(self.seeds) > 5:
+            print(f"🎲 Seeds: {self.seeds[:5]} ... (showing first 5 of {len(self.seeds)})")
+        else:
+            print(f"🎲 Seeds: {self.seeds}")
         
     def get_process_performance(self):
         """Get current process-specific performance metrics"""
@@ -111,7 +131,7 @@ class MultiRunACOLLMAnalyzer:
     
     def run_single_aco_llm(self, seed, run_number):
         """Run a single ACO LLM simulation with given seed"""
-        print(f"🤖 Running ACO LLM simulation {run_number}/30 with seed {seed}")
+        print(f"🤖 Running ACO LLM simulation {run_number}/{len(self.seeds)} with seed {seed}")
         
         # Start timing and performance monitoring
         start_time = time.time()
@@ -125,6 +145,10 @@ class MultiRunACOLLMAnalyzer:
             max_iterations = self.config["max_iterations"]
             target_ratio = self.config["target_ratio"]
             ratio_tolerance = self.config["ratio_tolerance"]
+            
+            # Get additional parameters for detailed tracking
+            distance_weight = self.config.get("distance_weight", 1.0)
+            pheromone_deposit = self.config.get("pheromone_deposit", 0.5)
             
             # Run simulation
             final_step = aco_llm.simulate(
@@ -151,6 +175,19 @@ class MultiRunACOLLMAnalyzer:
         paths = simulation_results['final_pheromone_levels']
         path_selection_history = simulation_results['path_selection_history']
         step_wise_ratios = simulation_results['step_wise_ratios']
+        pheromone_history = simulation_results['pheromone_history']
+        
+        # Create detailed step data for visualizer compatibility
+        detailed_step_data = self.create_detailed_step_data_from_llm_results(
+            pheromone_history, 
+            path_selection_history, 
+            paths,
+            distance_weight,
+            final_step
+        )
+        
+        # Calculate phase-based selection analysis (matching visualizer approach)
+        phase_analysis = self.calculate_phase_selections(detailed_step_data, max_iterations)
         
         # Calculate performance metrics using same methods as regular ACO
         convergence_speed = self.calculate_convergence_speed(
@@ -159,25 +196,24 @@ class MultiRunACOLLMAnalyzer:
             max_iterations
         )
         solution_quality = self.calculate_solution_quality(paths)
-        learning_efficiency = self.calculate_learning_efficiency(
+        learning_efficiency = self.calculate_learning_progression(
             path_selection_history["short"], 
             path_selection_history["long"],
             max_iterations
         )
         learning_stability = self.calculate_learning_stability(step_wise_ratios)
         
-        # Overall fitness: weighted combination emphasizing solution quality and speed
+        # Overall fitness: 50% convergence speed + 50% learning progression
         overall_fitness = (
-            convergence_speed * 0.3 +      # 30% - How quickly it converges
-            solution_quality * 0.4 +       # 40% - How well it identifies optimal path
-            learning_efficiency * 0.2 +    # 20% - Exploration/exploitation balance
-            learning_stability * 0.1       # 10% - Consistency of learning
+            convergence_speed * 0.5 +      # 50% - How quickly it converges
+            learning_efficiency * 0.5      # 50% - Exploration→Transition→Exploitation progression
         )
         
         # Store results
         result = {
             'seed': seed,
             'run_number': run_number,
+            'algorithm': 'ACO_LLM',  # Identify this as LLM version for visualizer
             'final_step': final_step,
             'convergence_time_seconds': simulation_duration,
             'swarm_performance': {
@@ -196,6 +232,9 @@ class MultiRunACOLLMAnalyzer:
                 'short': len(path_selection_history["short"]),
                 'long': len(path_selection_history["long"])
             },
+            'phase_selections': phase_analysis,
+            'detailed_step_data': detailed_step_data,
+            'pheromone_history': pheromone_history,
             'performance': {
                 'start': start_perf,
                 'end': end_perf,
@@ -257,39 +296,55 @@ class MultiRunACOLLMAnalyzer:
         quality_score = ratio / (1 + ratio)
         return min(1.0, quality_score)
     
-    def calculate_learning_efficiency(self, short_selections, long_selections, max_iterations):
-        """Measure exploration vs exploitation balance (higher = better)"""
+    def calculate_learning_progression(self, short_selections, long_selections, max_iterations):
+        """Measure exploration, transition, and exploitation across 3 equal phases (higher = better)"""
         total_selections = len(short_selections) + len(long_selections)
         if total_selections == 0:
             return 0.0
         
-        # Good ACO should explore early, then exploit
-        early_phase = max_iterations // 3  # First third for exploration
-        mid_phase = 2 * max_iterations // 3  # Second third for transition
+        # Divide into 3 equal phases of 6 iterations each (or proportional)
+        phase_size = max_iterations // 3
         
-        # Early exploration score (diversity is good)
-        early_short = len([s for s in short_selections if s <= early_phase])
-        early_long = len([s for s in long_selections if s <= early_phase])
-        early_total = early_short + early_long
+        # Phase 1: Exploration (iterations 1 to phase_size)
+        exploration_short = len([s for s in short_selections if 1 <= s <= phase_size])
+        exploration_long = len([s for s in long_selections if 1 <= s <= phase_size])
+        exploration_total = exploration_short + exploration_long
         
-        if early_total > 0:
-            early_balance = 1.0 - abs(0.5 - (early_short / early_total)) * 2
+        if exploration_total > 0:
+            exploration_short_ratio = exploration_short / exploration_total
+            # Perfect exploration = 50% short, 50% long (maximum diversity)
+            exploration_score = 1.0 - abs(0.5 - exploration_short_ratio) * 2
         else:
-            early_balance = 0.5
+            exploration_score = 0.0
         
-        # Late exploitation score (convergence is good)
-        late_short = len([s for s in short_selections if s > mid_phase])
-        late_long = len([s for s in long_selections if s > mid_phase])
-        late_total = late_short + late_long
+        # Phase 2: Transition (iterations phase_size+1 to 2*phase_size)
+        transition_short = len([s for s in short_selections if phase_size < s <= 2 * phase_size])
+        transition_long = len([s for s in long_selections if phase_size < s <= 2 * phase_size])
+        transition_total = transition_short + transition_long
         
-        if late_total > 0:
-            late_exploitation = late_short / late_total  # Higher = better (more optimal choices)
+        if transition_total > 0:
+            transition_short_ratio = transition_short / transition_total
+            # Good transition = gradual shift from 50% to 100% short, so ~75% is ideal
+            target_transition = 0.75
+            transition_score = 1.0 - abs(target_transition - transition_short_ratio) / target_transition
         else:
-            late_exploitation = 0.5
+            transition_score = 0.0
         
-        # Combine early exploration and late exploitation
-        efficiency_score = (early_balance * 0.3 + late_exploitation * 0.7)
-        return min(1.0, max(0.0, efficiency_score))
+        # Phase 3: Exploitation (iterations 2*phase_size+1 to max_iterations)
+        exploitation_short = len([s for s in short_selections if s > 2 * phase_size])
+        exploitation_long = len([s for s in long_selections if s > 2 * phase_size])
+        exploitation_total = exploitation_short + exploitation_long
+        
+        if exploitation_total > 0:
+            exploitation_short_ratio = exploitation_short / exploitation_total
+            # Perfect exploitation = 100% short path selection
+            exploitation_score = exploitation_short_ratio
+        else:
+            exploitation_score = 0.0
+        
+        # Average the three phase scores to get overall learning progression
+        learning_progression = (exploration_score + transition_score + exploitation_score) / 3.0
+        return min(1.0, max(0.0, learning_progression))
     
     def calculate_learning_stability(self, ratios):
         """Measure consistency of learning process (higher = better)"""
@@ -314,13 +369,146 @@ class MultiRunACOLLMAnalyzer:
         
         return max(0.0, min(1.0, stability_score))
     
+    def create_detailed_step_data_from_llm_results(self, pheromone_history, path_selection_history, final_paths, distance_weight, final_step):
+        """Create detailed step data from LLM simulation results for visualizer compatibility"""
+        detailed_step_data = []
+        
+        # Create timeline of selections
+        all_selections = []
+        for step in path_selection_history['short']:
+            all_selections.append({'step': step, 'chosen': 'short'})
+        for step in path_selection_history['long']:
+            all_selections.append({'step': step, 'chosen': 'long'})
+        
+        # Sort by step
+        all_selections.sort(key=lambda x: x['step'])
+        
+        # Create detailed tracking for each step
+        steps_processed = min(final_step, len(pheromone_history))
+        
+        for step in range(steps_processed):
+            # Get pheromone levels at this step
+            if step < len(pheromone_history):
+                pheromone_state = pheromone_history[step]
+                short_pheromone = pheromone_state['short']
+                long_pheromone = pheromone_state['long']
+            else:
+                # Use final state if needed
+                short_pheromone = final_paths['short']['pheromone']
+                long_pheromone = final_paths['long']['pheromone']
+            
+            # Calculate attractions (similar to regular ACO)
+            short_distance = final_paths['short']['distance']
+            long_distance = final_paths['long']['distance']
+            
+            short_attraction = short_pheromone / (short_distance ** distance_weight)
+            long_attraction = long_pheromone / (long_distance ** distance_weight)
+            total_attraction = short_attraction + long_attraction
+            
+            # Calculate probabilities
+            short_prob = short_attraction / total_attraction if total_attraction > 0 else 0.5
+            long_prob = long_attraction / total_attraction if total_attraction > 0 else 0.5
+            
+            # Calculate balance metric
+            balance = min(short_prob, long_prob) * 2
+            
+            # Determine what was chosen at this step
+            chosen = 'short'  # Default
+            for selection in all_selections:
+                if selection['step'] == step:
+                    chosen = selection['chosen']
+                    break
+            
+            # Store detailed step data
+            detailed_step_data.append({
+                'step': step,
+                'short_pheromone': short_pheromone,
+                'long_pheromone': long_pheromone,
+                'short_prob': short_prob,
+                'long_prob': long_prob,
+                'balance': balance,
+                'chosen': chosen,
+                'short_attraction': short_attraction,
+                'long_attraction': long_attraction
+            })
+        
+        return detailed_step_data
+    
+    def calculate_phase_selections(self, detailed_step_data, max_iterations):
+        """Calculate phase-based selection counts with dynamic phase sizing"""
+        # Use all available step data for analysis
+        analysis_steps = len(detailed_step_data)
+        step_data_subset = detailed_step_data[:analysis_steps]
+        
+        # Calculate dynamic phase boundaries for equal division
+        phase_size = analysis_steps // 3
+        remainder = analysis_steps % 3
+        
+        # Distribute remainder across phases (early gets extra if remainder > 0, mid gets extra if remainder > 1)
+        early_size = phase_size + (1 if remainder > 0 else 0)
+        mid_size = phase_size + (1 if remainder > 1 else 0)
+        late_size = phase_size
+        
+        # Calculate phase boundaries
+        early_end = early_size - 1           # Steps 0 to early_end
+        mid_end = early_size + mid_size - 1  # Steps early_size to mid_end
+                                            # Steps mid_end+1 to analysis_steps-1
+        
+        # Count selections per phase
+        early_selections = [d['chosen'] for d in step_data_subset if d['step'] <= early_end]
+        mid_selections = [d['chosen'] for d in step_data_subset if early_end < d['step'] <= mid_end]
+        late_selections = [d['chosen'] for d in step_data_subset if d['step'] > mid_end]
+        
+        # Calculate counts
+        phase_data = {
+            'early_phase': {
+                'steps': f"0-{early_end}",
+                'total_steps': len(early_selections),
+                'short_count': sum(1 for s in early_selections if s == 'short'),
+                'long_count': sum(1 for s in early_selections if s == 'long'),
+                'short_percentage': (sum(1 for s in early_selections if s == 'short') / len(early_selections) * 100) if early_selections else 0,
+                'selections': early_selections
+            },
+            'mid_phase': {
+                'steps': f"{early_end+1}-{mid_end}",
+                'total_steps': len(mid_selections),
+                'short_count': sum(1 for s in mid_selections if s == 'short'),
+                'long_count': sum(1 for s in mid_selections if s == 'long'),
+                'short_percentage': (sum(1 for s in mid_selections if s == 'short') / len(mid_selections) * 100) if mid_selections else 0,
+                'selections': mid_selections
+            },
+            'late_phase': {
+                'steps': f"{mid_end+1}-{analysis_steps-1}",
+                'total_steps': len(late_selections),
+                'short_count': sum(1 for s in late_selections if s == 'short'),
+                'long_count': sum(1 for s in late_selections if s == 'long'),
+                'short_percentage': (sum(1 for s in late_selections if s == 'short') / len(late_selections) * 100) if late_selections else 0,
+                'selections': late_selections
+            },
+            'analysis_info': {
+                'total_steps_analyzed': analysis_steps,
+                'early_phase_size': early_size,
+                'mid_phase_size': mid_size,
+                'late_phase_size': late_size,
+                'phase_distribution': f"{early_size}-{mid_size}-{late_size}"
+            }
+        }
+        
+        # Add phase progression summary
+        phase_data['phase_progression'] = f"{phase_data['early_phase']['short_percentage']:.1f}% → {phase_data['mid_phase']['short_percentage']:.1f}% → {phase_data['late_phase']['short_percentage']:.1f}%"
+        
+        return phase_data
+    
     def run_multiple_trials(self):
         """Run multiple ACO LLM trials with different seeds"""
         print(f"\n🚀 Starting Multi-Run ACO LLM Analysis")
         print(f"{'='*60}")
         print(f"Number of trials: {len(self.seeds)}")
         print(f"Max iterations per trial: {self.config['max_iterations']}")
-        print(f"Seeds: {self.seeds}")
+        if len(self.seeds) <= 10:
+            print(f"Seeds: {self.seeds}")
+        else:
+            print(f"Seeds: {self.seeds[:5]} ... {self.seeds[-2:]} (showing first 5 and last 2)")
         print(f"{'='*60}\n")
         
         # Record total analysis start time
@@ -653,6 +841,27 @@ class MultiRunACOLLMAnalyzer:
             ratio_stats = stats['additional_stats']['final_ratio']
             print(f"\n📈 Final Ratio Statistics:")
             print(f"Final Ratio:              {ratio_stats['mean']:.2f} ± {ratio_stats['std']:.2f}")
+        
+        # Show sample phase analysis from first result
+        if self.results and 'phase_selections' in self.results[0]:
+            print(f"\n📊 Phase Selection Analysis (Sample from Run 1):")
+            phase_data = self.results[0]['phase_selections']
+            print(f"Phase Progression:        {phase_data['phase_progression']}")
+            print(f"Early Phase ({phase_data['early_phase']['steps']}):        {phase_data['early_phase']['short_count']}S/{phase_data['early_phase']['long_count']}L ({phase_data['early_phase']['short_percentage']:.1f}% short)")
+            print(f"Mid Phase ({phase_data['mid_phase']['steps']}):          {phase_data['mid_phase']['short_count']}S/{phase_data['mid_phase']['long_count']}L ({phase_data['mid_phase']['short_percentage']:.1f}% short)")
+            print(f"Late Phase ({phase_data['late_phase']['steps']}):       {phase_data['late_phase']['short_count']}S/{phase_data['late_phase']['long_count']}L ({phase_data['late_phase']['short_percentage']:.1f}% short)")
+            
+            # Show average phase progressions across all runs
+            if len(self.results) > 1:
+                early_percentages = [r['phase_selections']['early_phase']['short_percentage'] for r in self.results]
+                mid_percentages = [r['phase_selections']['mid_phase']['short_percentage'] for r in self.results]
+                late_percentages = [r['phase_selections']['late_phase']['short_percentage'] for r in self.results]
+                
+                print(f"\n📊 Average Phase Performance Across All {len(self.results)} Runs:")
+                print(f"Early Phase Average:      {np.mean(early_percentages):.1f}% ± {np.std(early_percentages):.1f}% short selections")
+                print(f"Mid Phase Average:        {np.mean(mid_percentages):.1f}% ± {np.std(mid_percentages):.1f}% short selections")  
+                print(f"Late Phase Average:       {np.mean(late_percentages):.1f}% ± {np.std(late_percentages):.1f}% short selections")
+                print(f"Average Progression:      {np.mean(early_percentages):.1f}% → {np.mean(mid_percentages):.1f}% → {np.mean(late_percentages):.1f}%")
 
 def main():
     """Main function to run multi-trial ACO LLM analysis"""

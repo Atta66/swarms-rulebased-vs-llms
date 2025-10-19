@@ -85,10 +85,35 @@ class ACOLLMEnhanced:
 
         return result
 
-    def choose_path(self, step):
-        """Choose a path using LLM agent"""
+    def choose_path(self, step, max_iterations=15):
+        """Choose a path using LLM agent with exploration-exploitation phases"""
         try:
-            chosen_path = self.run_agent(self.config["agent1"])
+            # Define phases
+            early_phase_end = max_iterations // 3  # First third
+            mid_phase_end = 2 * max_iterations // 3  # Second third
+            
+            # Determine current phase
+            if step <= early_phase_end:
+                current_phase = "EARLY"
+                phase_instruction = "explore both paths roughly equally to gather information"
+            elif step <= mid_phase_end:
+                current_phase = "MIDDLE" 
+                phase_instruction = "balance exploration with pheromone consideration"
+            else:
+                current_phase = "LATE"
+                phase_instruction = "exploit the best path based on pheromone-to-distance ratio"
+            
+            # Get path choice from LLM with phase context
+            chosen_path = self.run_agent(
+                self.config["agent1"],
+                step=step,
+                max_iterations=max_iterations,
+                early_phase_end=early_phase_end,
+                mid_phase_end=mid_phase_end,
+                late_phase_start=mid_phase_end + 1,
+                current_phase=current_phase,
+                phase_instruction=phase_instruction
+            )
             
             # Clean up the response to ensure it's just "short" or "long"
             if isinstance(chosen_path, str):
@@ -98,10 +123,37 @@ class ACOLLMEnhanced:
                 elif "long" in chosen_path:
                     chosen_path = "long"
                 else:
-                    # Fallback to probabilistic choice if LLM response is unclear
-                    chosen_path = self.probabilistic_choice()
+                    # Fallback: use phase-appropriate strategy
+                    if current_phase == "EARLY":
+                        # Force exploration by random choice (80% chance in early phase)
+                        if np.random.random() < 0.8:
+                            chosen_path = np.random.choice(["short", "long"])
+                        else:
+                            chosen_path = self.probabilistic_choice()
+                    elif current_phase == "MIDDLE":
+                        # Balance exploration and exploitation (40% exploration)
+                        if np.random.random() < 0.4:
+                            chosen_path = np.random.choice(["short", "long"])
+                        else:
+                            chosen_path = self.probabilistic_choice()
+                    else:
+                        chosen_path = self.probabilistic_choice()
             else:
-                chosen_path = self.probabilistic_choice()
+                # Fallback: use phase-appropriate strategy
+                if current_phase == "EARLY":
+                    # Force exploration by random choice (80% chance in early phase)
+                    if np.random.random() < 0.8:
+                        chosen_path = np.random.choice(["short", "long"])
+                    else:
+                        chosen_path = self.probabilistic_choice()
+                elif current_phase == "MIDDLE":
+                    # Balance exploration and exploitation (40% exploration)
+                    if np.random.random() < 0.4:
+                        chosen_path = np.random.choice(["short", "long"])
+                    else:
+                        chosen_path = self.probabilistic_choice()
+                else:
+                    chosen_path = self.probabilistic_choice()
                 
             # Track the selection
             if chosen_path in ["short", "long"]:
@@ -111,7 +163,18 @@ class ACOLLMEnhanced:
             
         except Exception as e:
             print(f"Error in path selection: {e}")
-            return self.probabilistic_choice()
+            # Fallback with phase awareness
+            if step <= max_iterations // 3:
+                # Force exploration in early phase
+                return np.random.choice(["short", "long"])
+            elif step <= 2 * max_iterations // 3:
+                # Balanced approach in middle phase
+                if np.random.random() < 0.4:
+                    return np.random.choice(["short", "long"])
+                else:
+                    return self.probabilistic_choice()
+            else:
+                return self.probabilistic_choice()
     
     def probabilistic_choice(self):
         """Fallback probabilistic path choice based on pheromones"""
@@ -195,8 +258,8 @@ class ACOLLMEnhanced:
         
         # Run simulation
         for step in range(max_iterations):
-            # Choose path using LLM
-            chosen_path = self.choose_path(step)
+            # Choose path using LLM with phase awareness
+            chosen_path = self.choose_path(step, max_iterations)
             
             # Update pheromones using LLM
             self.update_pheromones(chosen_path)

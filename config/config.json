@@ -1,12 +1,12 @@
 {
-    "evaporation_rate": 0.01,
+    "evaporation_rate": 0.02,
     "paths": {
         "short": {"distance": 1, "pheromone": 1},
         "long": {"distance": 2, "pheromone": 1}
     },
     "agent1": {
-        "name": "PathSelectionAgent",
-        "instructions": "Your environment provides two paths with the following characteristics: paths = {paths}. Based on this information, choose one of the paths in a way that balances the pheromone level and the distance, following behavior inspired by real ant colonies. Return only the name of the chosen path: short or long. no additional text."
+        "name": "PathSelectionAgent", 
+        "instructions": "You are an ant in an ACO simulation with exploration-exploitation strategy. Current step: {step} of {max_iterations}. Paths: {paths}. STRATEGY: EARLY PHASE (steps 0-{early_phase_end}): EXPLORE - Choose paths more randomly to gather information, aim for roughly 50/50 exploration between paths. MIDDLE PHASE (steps {mid_phase_end} to {late_phase_start}): TRANSITION - Start considering pheromones but still explore occasionally. LATE PHASE (steps {late_phase_start}+): EXPLOIT - Focus on the path with better pheromone-to-distance ratio. Current phase: {current_phase}. In {current_phase} phase, you should {phase_instruction}. Return only: short or long"
     },
     "agent2": {
         "name": "PheromoneUpdateAgent",
