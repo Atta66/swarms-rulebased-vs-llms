@@ -197,12 +197,12 @@ class BoidsIndividualVisualizer:
         width = 0.35
         
         bars1 = ax.bar(x - width/2, classic_means, width, yerr=classic_stds, 
-                       label='Classic', color='lightblue', alpha=0.8, capsize=5, 
+                       label='Classic Boids', color='lightblue', alpha=0.8, capsize=5, 
                        edgecolor='black', linewidth=0.8)
         
         if any(llm_means):  # Only plot LLM bars if we have data
             bars2 = ax.bar(x + width/2, llm_means, width, yerr=llm_stds,
-                           label='LLM', color='lightcoral', alpha=0.8, capsize=5,
+                           label='LLM Boids', color='lightcoral', alpha=0.8, capsize=5,
                            edgecolor='black', linewidth=0.8)
         
         # Styling to match ACO graphs
@@ -272,12 +272,12 @@ class BoidsIndividualVisualizer:
         if classic_fitness:
             classic_trials = range(1, len(classic_fitness) + 1)
             ax.scatter(classic_trials, classic_fitness, color='blue', alpha=0.7, 
-                      s=50, label='Classic', edgecolors='darkblue', linewidth=0.5)
+                      s=50, label='Classic Boids', edgecolors='darkblue', linewidth=0.5)
         
         if llm_fitness:
             llm_trials = range(1, len(llm_fitness) + 1)
             ax.scatter(llm_trials, llm_fitness, color='red', alpha=0.7, 
-                      s=50, label='LLM', edgecolors='darkred', linewidth=0.5)
+                      s=50, label='LLM Boids', edgecolors='darkred', linewidth=0.5)
         
         # Add mean lines (horizontal)
         if classic_fitness:
@@ -294,20 +294,6 @@ class BoidsIndividualVisualizer:
         ax.legend(fontsize=11)
         ax.grid(True, alpha=0.3)
         ax.set_ylim(0, 1.0)
-        
-        # Add statistics box (similar to convergence speed)
-        if classic_fitness and llm_fitness:
-            classic_mean = np.mean(classic_fitness)
-            llm_mean = np.mean(llm_fitness)
-            difference = llm_mean - classic_mean
-            
-            # Add each line separately to avoid newline display issues
-            ax.text(0.02, 0.98, f'Classic Mean: {classic_mean:.3f}', transform=ax.transAxes, fontsize=10,
-                   verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
-            ax.text(0.02, 0.94, f'LLM Mean: {llm_mean:.3f}', transform=ax.transAxes, fontsize=10,
-                   verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
-            ax.text(0.02, 0.90, f'Difference: {difference:+.3f}', transform=ax.transAxes, fontsize=10,
-                   verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
         
         plt.tight_layout()
         
