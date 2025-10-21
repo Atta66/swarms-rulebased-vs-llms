@@ -81,17 +81,17 @@ def create_comparison_visualization(aco_data, aco_llm_data):
     
     # Create bars with error bars
     bars1 = ax.bar(x - width/2, aco_means, width, yerr=aco_stds, 
-                   label='ACO', color='lightblue', alpha=0.7, 
+                   label='Classic ACO', color='lightblue', alpha=0.7, 
                    edgecolor='black', capsize=5)
     bars2 = ax.bar(x + width/2, aco_llm_means, width, yerr=aco_llm_stds,
-                   label='ACO LLM', color='lightcoral', alpha=0.7, 
+                   label='LLM ACO', color='lightcoral', alpha=0.7, 
                    edgecolor='black', capsize=5)
     
     ax.set_xlabel('Performance Metrics', fontsize=14)
     ax.set_ylabel('Performance Score', fontsize=14)
     ax.set_xticks(x)
     ax.set_xticklabels(metric_labels, fontsize=12)
-    ax.legend(fontsize=12)
+    ax.legend(fontsize=12, loc='upper left')
     ax.grid(True, alpha=0.3)
     ax.set_ylim(0, 1.0)
     

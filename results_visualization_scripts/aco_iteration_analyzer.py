@@ -1,7 +1,7 @@
 """
-ACO Iteration Analyzer
-Analyzes ACO results with 500 iterations and shows how the average short path percentage 
-changes over iterations from 0 to 500.
+ACO Iteration Analyzer - Latest Multi_Run Results
+Analyzes the latest multi_run ACO results and shows how the average short path percentage 
+changes over iterations, providing comprehensive analysis of learning progression.
 """
 
 import json
@@ -12,40 +12,41 @@ from datetime import datetime
 import glob
 
 def find_500_iteration_aco_results():
-    """Find the specific 500-iteration ACO results file from Oct 17th."""
+    """Find the latest multi_run ACO results file."""
     results_dir = "../results/aco"
     if not os.path.exists(results_dir):
         print(f"❌ Results directory {results_dir} not found!")
         return None
     
-    # Target the specific 500-iteration files from Oct 17th (priority order)
+    # Target the latest multi_run files (priority order)
     target_files = [
-        os.path.join(results_dir, "multi_run_aco_20251017_134900.json"),
-        os.path.join(results_dir, "multi_run_aco_20251017_134248.json")
+        os.path.join(results_dir, "multi_run_aco_20251020_164251.json"),
+        os.path.join(results_dir, "multi_run_aco_20251020_163353.json"),
+        os.path.join(results_dir, "multi_run_aco_20251020_162345.json"),
+        os.path.join(results_dir, "multi_run_aco_20251020_162112.json")
     ]
     
     for target_file in target_files:
         if os.path.exists(target_file):
-            print(f"📊 Using 500-iteration ACO results: {os.path.basename(target_file)}")
+            print(f"📊 Using latest multi_run ACO results: {os.path.basename(target_file)}")
             return target_file
     
-    # If no 500-iteration files found, search for any with 500 iterations
-    print("🔍 Searching for any ACO results with 500 iterations...")
+    # If no latest files found, search for any multi_run files (most recent first)
+    print("🔍 Searching for any multi_run ACO results...")
     pattern = os.path.join(results_dir, "multi_run_aco_*.json")
-    files = glob.glob(pattern)
+    files = sorted(glob.glob(pattern), reverse=True)  # Most recent first
     
     for file_path in files:
         try:
             with open(file_path, 'r') as f:
-                # Read just enough to find configuration
-                content = f.read(10000)  # Read first 10KB to find config
-                if '"max_iterations": 500' in content or '"max_iterations":500' in content:
-                    print(f"✅ Found 500-iteration ACO results: {os.path.basename(file_path)}")
-                    return file_path
+                # Try to load the file to verify it's valid
+                data = json.load(f)
+                print(f"✅ Found multi_run ACO results: {os.path.basename(file_path)}")
+                return file_path
         except:
             continue
     
-    print("❌ No 500-iteration ACO results found!")
+    print("❌ No valid multi_run ACO results found!")
     return None
 
 def load_and_analyze_results(file_path):
@@ -63,9 +64,8 @@ def load_and_analyze_results(file_path):
         config = data.get('configuration', {})
         max_iterations = config.get('max_iterations', 'Unknown')
         
-        # Verify this is a 500-iteration file
-        if max_iterations != 500:
-            print(f"⚠️  Warning: File has {max_iterations} iterations, not 500!")
+        # Show iteration count
+        print(f"📊 File contains {max_iterations} iterations")
         
         # Look for individual results in different possible locations
         individual_results = None
@@ -251,28 +251,18 @@ def create_progression_graph(iterations, averages, std_devs, config):
     plt.legend(fontsize=12)
     plt.ylim(0, 100)
     
-    # Add some key statistics as text
-    final_avg = smooth_avg[-1] if len(smooth_avg) > 0 else 0
-    initial_avg = smooth_avg[0] if len(smooth_avg) > 0 else 0
-    max_avg = np.max(smooth_avg) if len(smooth_avg) > 0 else 0
-    
-    stats_text = f"Initial: {initial_avg:.1f}%\nFinal: {final_avg:.1f}%\nPeak: {max_avg:.1f}%"
-    plt.text(0.02, 0.98, stats_text, transform=plt.gca().transAxes, 
-             verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8),
-             fontsize=12)
-    
     plt.tight_layout()
     
     # Save the plot
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"aco_500_iteration_progression_{timestamp}.png"
+    filename = f"aco_latest_multirun_progression_{timestamp}.png"
     save_path = os.path.join("..", "results", "visualizations", filename)
     
     # Ensure directory exists
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    print(f"💾 500-iteration graph saved to: {save_path}")
+    print(f"💾 Latest multi_run graph saved to: {save_path}")
     
     plt.show()
     
@@ -283,16 +273,16 @@ def print_phase_analysis(iterations, averages, max_iterations):
     if len(averages) == 0:
         return
     
-    # Define phases for 500 iterations
-    early_end = max_iterations // 3  # First ~167 iterations
-    mid_end = 2 * max_iterations // 3  # Middle ~167-333 iterations
+    # Define phases dynamically based on actual max_iterations
+    early_end = max_iterations // 3  # First third
+    mid_end = 2 * max_iterations // 3  # Middle third
     
     early_phase = [avg for i, avg in enumerate(averages) if iterations[i] <= early_end]
     mid_phase = [avg for i, avg in enumerate(averages) if early_end < iterations[i] <= mid_end]
     late_phase = [avg for i, avg in enumerate(averages) if iterations[i] > mid_end]
     
     print("\n" + "="*60)
-    print("📊 PHASE ANALYSIS (500 ITERATIONS)")
+    print(f"📊 PHASE ANALYSIS ({max_iterations} ITERATIONS)")
     print("="*60)
     
     if early_phase:
@@ -309,8 +299,8 @@ def print_phase_analysis(iterations, averages, max_iterations):
         learning_rate = (averages[-1] - averages[0]) / len(averages)
         print(f"📈 Learning Rate: {learning_rate:.3f}% per iteration")
     
-    # Additional 500-iteration specific analysis
-    if len(averages) >= 500:
+    # Convergence analysis for any number of iterations
+    if len(averages) >= 10:  # Need at least 10 iterations for meaningful analysis
         convergence_80 = None
         convergence_90 = None
         convergence_95 = None
@@ -333,10 +323,10 @@ def print_phase_analysis(iterations, averages, max_iterations):
 
 def main():
     """Main analysis function."""
-    print("🐜 ACO 500-Iteration Analysis")
+    print("🐜 Latest Multi_Run ACO Analysis")
     print("="*50)
     
-    # Find and load the 500-iteration results
+    # Find and load the latest multi_run results
     target_file = find_500_iteration_aco_results()
     if not target_file:
         return
@@ -358,7 +348,7 @@ def main():
     # Print phase analysis
     print_phase_analysis(iterations, averages, max_iterations)
     
-    print(f"\n✅ 500-iteration analysis complete! Graph saved to: {save_path}")
+    print(f"\n✅ Latest multi_run analysis complete! Graph saved to: {save_path}")
 
 if __name__ == "__main__":
     main()

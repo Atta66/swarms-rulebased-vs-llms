@@ -15,7 +15,7 @@
         },
         "long": {
             "distance": 2,
-            "initial_pheromone": 1.0
+            "initial_pheromone": 2.0
         }
     },
     "visualization": {
