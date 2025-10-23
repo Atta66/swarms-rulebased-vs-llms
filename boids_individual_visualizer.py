@@ -280,18 +280,21 @@ class BoidsIndividualVisualizer:
                       s=50, label='LLM Boids', edgecolors='darkred', linewidth=0.5)
         
         # Add mean lines (horizontal)
+        classic_mean = None
+        llm_mean = None
+        
         if classic_fitness:
             classic_mean = np.mean(classic_fitness)
-            ax.axhline(y=classic_mean, color='blue', linestyle='-', alpha=0.6, linewidth=2)
+            ax.axhline(y=classic_mean, color='blue', linestyle='-', alpha=0.6, linewidth=2, label='Classic Boids Mean')
         
         if llm_fitness:
             llm_mean = np.mean(llm_fitness)
-            ax.axhline(y=llm_mean, color='red', linestyle='-', alpha=0.6, linewidth=2)
+            ax.axhline(y=llm_mean, color='red', linestyle='-', alpha=0.6, linewidth=2, label='LLM Boids Mean')
         
         # Styling to match ACO convergence speed graph
         ax.set_xlabel('Trial Number', fontsize=12)
         ax.set_ylabel('Overall Fitness', fontsize=12)
-        ax.legend(fontsize=11)
+        ax.legend(fontsize=11, loc='upper right')
         ax.grid(True, alpha=0.3)
         ax.set_ylim(0, 1.0)
         
