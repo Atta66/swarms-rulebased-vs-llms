@@ -18,8 +18,11 @@ Comparison of traditional rule-based swarms and LLM-driven swarms using Boids an
 > You are a boid at position `(x, y)` with velocity `(vx, vy)`. Other boids: `[((x₁, y₁), (vx₁, vy₁)), ...]`. Your task is to align your velocity with the average velocity of nearby boids within a radius of `R`. Return a `(dx, dy)` vector representing the alignment force to apply to your velocity. Only output the vector as `(dx, dy)`. No additional text.
 
 ## Prompts for ACO
-### Path Selection Agent Prompt
+### Path Selection Agent Prompt (intial)
 > Your environment provides two paths with the following characteristics: `paths = {paths}`. Based on this information, choose one of the paths in a way that balances the pheromone level and the distance, following behavior inspired by real ant colonies. Return only the name of the chosen path: `short` or `long`. No additional text.
+
+### Path Selection Agent Prompt (updated)
+> You are an ant in an ACO simulation using an exploration---exploitation strategy. Current step: \{step\} of \{max\_iterations\}. Paths: \{paths\}. Strategy: Early Phase (steps 0---\{early\_phase\_end\}): Explore---choose paths more randomly, aiming for roughly 50/50 exploration. Middle Phase (steps \{mid\_phase\_end\} to \{late\_phase\_start\}): Transition---start considering pheromones but continue occasional exploration. Late Phase (steps \{late\_phase\_start\}): Exploit---focus on the path with the better pheromone-to-distance ratio. Current phase: \{current\_phase\}. In the \{current\_phase\} phase, you should \{phase\_instruction\}. Return only: short or long.
 
 ### Pheromone Update Agent Prompt
 > You are a pheromone update agent in an Ant Colony Optimization simulation. The paths are given by `{paths}`. Based on the chosen path which is `{chosen_path}`, update the pheromone levels to reflect the quality of the chosen path and respond with the updated pheromones as an output: `[x, y]` where `x` corresponds to `short` and `y` corresponds to `long`. No additional text.
