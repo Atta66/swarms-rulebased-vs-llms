@@ -42,7 +42,9 @@ All local experiments were conducted using the **Qwen 2.5 Instruct (14B)** model
 In the same configuration and environment, the **local LLM** achieved an overall fitness score of **0.470**, compared to **0.560** for the **GPT-based** implementation. Furthermore, the task was completed in **7468.58 seconds** (about 7x times slower than GPT-based implementation).
 
 ### ACO
-<img width="3570" height="2955" alt="aco_vs_aco_llm_comparison_20250924_124235" src="https://github.com/user-attachments/assets/2415a639-c69e-4162-8867-6a2139bc511d" />
+
+<img width="3570" height="2357" alt="aco_performance_comparison_20251029_001343" src="https://github.com/user-attachments/assets/1e85c0da-38ab-4b1d-82f2-0eb983a86c66" />
+<img width="3570" height="2364" alt="phase_performance_summary_20251029_001628" src="https://github.com/user-attachments/assets/cd771b90-b60e-4659-8002-113293ad88b6" />
 
 Under identical conditions, the **local LLM** achieved an overall fitness score of **0.558**, while the **GPT-based** implementation reached **0.862**. The task was completed in **2863.41 seconds** (about 3x times slower than GPT-based implementation).
 
