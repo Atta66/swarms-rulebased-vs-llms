@@ -48,3 +48,5 @@ In the same configuration and environment, the **local LLM** achieved an overall
 
 Under identical conditions, the **local LLM** achieved an overall fitness score of **0.558**, while the **GPT-based** implementation reached **0.862**. The task was completed in **2863.41 seconds** (about 3x times slower than GPT-based implementation).
 
+As evident from the results, the local LLM achieves faster convergence; however, this improvement arises from its less accurate adherence to the prompt instructions compared to GPT. This discrepancy is visible in the phase graph, where the early, mid, and late phases do not reflect the exploration–transition–exploitation pattern as effectively as observed with GPT (see paper).
+
