@@ -7,13 +7,13 @@ A comprehensive comparison framework for analyzing the performance differences b
 This project implements and compares two approaches to solving the classic Ant Colony Optimization problem:
 
 1. **Rule-Based ACO** (`aco.py`): Traditional algorithmic approach using deterministic pheromone update rules
-2. **LLM-Enhanced ACO** (`aco_llm_enhanced.py`): AI-powered approach leveraging Large Language Models for dynamic decision-making
+2. **LLM-powered ACO** (`aco_llm_enhanced.py`): AI-powered approach leveraging Large Language Models for dynamic decision-making
 
 The framework includes extensive performance tracking, visualization tools, and statistical analysis capabilities to evaluate both approaches across multiple dimensions.
 
 ## 🎯 Features
 
-- **Dual Implementation**: Side-by-side comparison of rule-based and LLM-enhanced algorithms
+- **Dual Implementation**: Side-by-side comparison of rule-based and LLM-powered algorithms
 - **Multi-Trial Analysis**: Run 30 (can be changed) trials for statistical significance
 - **Comprehensive Metrics**:
   - Path selection efficiency
@@ -31,7 +31,7 @@ The framework includes extensive performance tracking, visualization tools, and 
 ```
 swarms-rulebased-vs-llms/
 ├── aco.py                          # Rule-based ACO implementation
-├── aco_llm_enhanced.py             # LLM-enhanced ACO implementation
+├── aco_llm_enhanced.py             # LLM-based ACO implementation
 ├── multi_run_aco.py                # Multi-trial runner for rule-based ACO
 ├── multi_run_aco_llm.py            # Multi-trial runner for LLM ACO
 ├── aco_focused_visualizer.py       # Real-time visualization tool
@@ -78,7 +78,7 @@ Edit the configuration files to customize algorithm parameters:
 }
 ```
 
-**`config/config.json`** (LLM-enhanced ACO):
+**`config/config.json`** (LLM-based ACO):
 - Similar structure with additional LLM-specific parameters
 
 ### Running Single Experiments
@@ -88,7 +88,7 @@ Edit the configuration files to customize algorithm parameters:
 python aco.py
 ```
 
-**LLM-enhanced ACO:**
+**LLM-powered ACO:**
 ```bash
 python aco_llm_enhanced.py
 ```
@@ -102,7 +102,7 @@ For statistical significance, run multiple trials:
 python multi_run_aco.py
 ```
 
-**LLM-enhanced ACO (30 trials):**
+**LLM-based ACO (30 trials):**
 ```bash
 python multi_run_aco_llm.py
 ```
@@ -188,7 +188,7 @@ python results_visualization_scripts/exploration_exploitation_analyzer.py
 
 ## 🤖 LLM Integration
 
-The LLM-enhanced version uses the `swarm` library to integrate AI decision-making:
+The LLM-powered version uses the `swarm` library to integrate AI decision-making:
 
 - **Path Selection Agent**: Chooses paths based on pheromone and distance
 - **Pheromone Update Agent**: Calculates optimal pheromone updates
