@@ -6,14 +6,14 @@ A comprehensive comparison framework for analyzing the performance differences b
 
 This project implements and compares two approaches to the classic Boids flocking simulation:
 
-1. **Classic Rule-Based Boids** (`boids.py`): Traditional algorithmic approach using Reynolds' three rules (separation, cohesion, alignment)
-2. **LLM-Enhanced Boids** (`boids_llm.py`): AI-powered approach leveraging LLMs to make flocking decisions
+1. **Classic Rule-based Boids** (`boids.py`): Traditional algorithmic approach using three rules (separation, cohesion, alignment)
+2. **LLM-powered Boids** (`boids_llm.py`): AI-powered approach leveraging LLMs to make flocking decisions
 
 The framework includes extensive performance tracking, visualization tools, and statistical analysis capabilities to evaluate both approaches across multiple dimensions.
 
 ## 🎯 Features
 
-- **Dual Implementation**: Side-by-side comparison of rule-based and LLM-enhanced flocking
+- **Dual Implementation**: Side-by-side comparison of rule-based and LLM-powered flocking
 - **Multi-Trial Analysis**: Run 30 trials with different random seeds for statistical significance
 - **Comprehensive Metrics**:
   - Swarm cohesion and coherence
@@ -32,7 +32,7 @@ The framework includes extensive performance tracking, visualization tools, and 
 ```
 swarms-rulebased-vs-llms/
 ├── boids.py                           # Classic rule-based Boids implementation
-├── boids_llm.py                       # LLM-enhanced Boids implementation
+├── boids_llm.py                       # LLM-based Boids implementation
 ├── multi_run_boids.py                 # Multi-trial runner for classic Boids
 ├── multi_run_boids_llm.py             # Multi-trial runner for LLM Boids
 ├── boids_multi_run_comparison.py.py   # Primary comparison analyzer
@@ -77,12 +77,12 @@ Edit `config/config.json` to customize simulation parameters:
 
 ### Running Single Simulations
 
-**Classic Rule-Based Boids:**
+**Classic Rule-based Boids:**
 ```powershell
 python boids.py
 ```
 
-**LLM-Enhanced Boids:**
+**LLM-powered Boids:**
 ```powershell
 python boids_llm.py
 ```
@@ -103,7 +103,7 @@ For statistical significance, run multiple trials:
 python multi_run_boids.py
 ```
 
-**LLM-Enhanced Boids (30 trials):**
+**LLM-powered Boids (30 trials):**
 ```powershell
 python multi_run_boids_llm.py
 ```
@@ -245,7 +245,7 @@ Each behavior has a customizable prompt template:
 
 ## 🤖 LLM Integration
 
-The LLM-enhanced version uses the `swarm` library to create specialized agents:
+The LLM-based version uses the `swarm` library to create specialized agents:
 
 ```python
 from swarm import Swarm, Agent
@@ -326,7 +326,7 @@ pip install swarm pygame numpy matplotlib psutil GPUtil
 
 This framework is suitable for:
 
-- Comparing traditional vs AI-enhanced swarm algorithms
+- Comparing traditional vs LLM-based swarm algorithms
 - Studying emergent flocking behavior
 - Evaluating LLM decision-making in real-time simulations
 - Teaching swarm intelligence and collective behavior
