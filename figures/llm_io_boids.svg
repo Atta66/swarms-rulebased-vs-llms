@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="660" viewBox="0 0 960 660" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#555555"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="960" height="660" fill="#ffffff"/>
+
+  <g transform="translate(0,-34)">
+
+  <!-- Column headers -->
+  <text x="200" y="72" text-anchor="middle" font-size="13" font-weight="bold" fill="#1565c0">INPUT (prompt)</text>
+  <text x="510" y="72" text-anchor="middle" font-size="13" font-weight="bold" fill="#2e7d32">LLM AGENT</text>
+  <text x="740" y="72" text-anchor="middle" font-size="13" font-weight="bold" fill="#e65100">OUTPUT (response)</text>
+
+  <!-- ============ ROW 1 ============ -->
+  <rect x="20" y="90" width="360" height="120" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+  <text x="35" y="112" font-size="13" fill="#111111">position = (x, y)</text>
+  <text x="35" y="130" font-size="13" fill="#111111">velocity = (vx, vy)</text>
+  <text x="35" y="148" font-size="13" fill="#111111">other_boids = [(pos, vel), …]</text>
+  <text x="35" y="166" font-size="13" fill="#111111">radius r</text>
+  <text x="35" y="184" font-size="13" fill="#111111">velocity_damping η</text>
+
+  <rect x="410" y="90" width="200" height="120" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="510" y="155" text-anchor="middle" font-size="14" font-weight="bold" fill="#1b5e20">SeparationAgent</text>
+
+  <rect x="640" y="90" width="200" height="120" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.5"/>
+  <text x="740" y="145" text-anchor="middle" font-size="14" font-weight="bold" fill="#bf360c">(dx, dy)</text>
+  <text x="740" y="165" text-anchor="middle" font-size="12" fill="#8d6e63">separation force</text>
+
+  <line x1="380" y1="150" x2="406" y2="150" stroke="#555555" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="610" y1="150" x2="636" y2="150" stroke="#555555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============ ROW 2 ============ -->
+  <rect x="20" y="234" width="360" height="120" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+  <text x="35" y="256" font-size="13" fill="#111111">position = (x, y)</text>
+  <text x="35" y="274" font-size="13" fill="#111111">velocity = (vx, vy)</text>
+  <text x="35" y="292" font-size="13" fill="#111111">other_boids = [(pos, vel), …]</text>
+  <text x="35" y="310" font-size="13" fill="#111111">perception_radius R</text>
+  <text x="35" y="328" font-size="13" fill="#111111">velocity_damping η</text>
+
+  <rect x="410" y="234" width="200" height="120" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="510" y="299" text-anchor="middle" font-size="14" font-weight="bold" fill="#1b5e20">CohesionAgent</text>
+
+  <rect x="640" y="234" width="200" height="120" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.5"/>
+  <text x="740" y="289" text-anchor="middle" font-size="14" font-weight="bold" fill="#bf360c">(dx, dy)</text>
+  <text x="740" y="309" text-anchor="middle" font-size="12" fill="#8d6e63">cohesion force</text>
+
+  <line x1="380" y1="294" x2="406" y2="294" stroke="#555555" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="610" y1="294" x2="636" y2="294" stroke="#555555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============ ROW 3 ============ -->
+  <rect x="20" y="378" width="360" height="120" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+  <text x="35" y="400" font-size="13" fill="#111111">position = (x, y)</text>
+  <text x="35" y="418" font-size="13" fill="#111111">velocity = (vx, vy)</text>
+  <text x="35" y="436" font-size="13" fill="#111111">other_boids = [(pos, vel), …]</text>
+  <text x="35" y="454" font-size="13" fill="#111111">perception_radius R</text>
+  <text x="35" y="472" font-size="13" fill="#111111">velocity_damping η</text>
+
+  <rect x="410" y="378" width="200" height="120" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="510" y="443" text-anchor="middle" font-size="14" font-weight="bold" fill="#1b5e20">AlignmentAgent</text>
+
+  <rect x="640" y="378" width="200" height="120" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.5"/>
+  <text x="740" y="433" text-anchor="middle" font-size="14" font-weight="bold" fill="#bf360c">(dx, dy)</text>
+  <text x="740" y="453" text-anchor="middle" font-size="12" fill="#8d6e63">alignment force</text>
+
+  <line x1="380" y1="438" x2="406" y2="438" stroke="#555555" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="610" y1="438" x2="636" y2="438" stroke="#555555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============ Post-processing ============ -->
+  <rect x="20" y="522" width="820" height="60" rx="8" fill="#fce4ec" stroke="#c2185b" stroke-width="1.5"/>
+  <text x="430" y="548" text-anchor="middle" font-size="14" font-weight="bold" fill="#880e4f">Post-processing (no LLM) — combine the three steering forces</text>
+  <text x="430" y="568" text-anchor="middle" font-size="13" fill="#111111">repeat for each boid, then advance to the next time step</text>
+
+  <!-- Feedback loop: new positions & velocities become input for next step -->
+  <path d="M 430 582 L 430 606 L 12 606 L 12 112 L 20 112" fill="none" stroke="#8e24aa" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow)"/>
+  <text transform="rotate(-90)" x="-360" y="6" text-anchor="middle" font-size="10" fill="#8e24aa" font-style="italic">positions &amp; velocities → next step</text>
+
+  </g>
+</svg>

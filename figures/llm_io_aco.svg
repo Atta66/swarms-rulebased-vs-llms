@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#555555"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="960" height="600" fill="#ffffff"/>
+
+  <g transform="translate(115,-34)">
+
+  <!-- Column headers -->
+  <text x="175" y="72" text-anchor="middle" font-size="13" font-weight="bold" fill="#1565c0">INPUT (prompt)</text>
+  <text x="445" y="72" text-anchor="middle" font-size="13" font-weight="bold" fill="#2e7d32">LLM AGENT</text>
+  <text x="635" y="72" text-anchor="middle" font-size="13" font-weight="bold" fill="#e65100">OUTPUT (response)</text>
+
+  <!-- ============ ROW 1 ============ -->
+  <rect x="20" y="90" width="310" height="130" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+  <text x="35" y="112" font-size="13" fill="#111111">paths: short {d₁, τ₁},</text>
+  <text x="35" y="130" font-size="13" fill="#111111">       long {d₂, τ₂}</text>
+  <text x="35" y="148" font-size="13" fill="#111111">step = k, max_iterations = N</text>
+  <text x="35" y="166" font-size="13" fill="#111111">phase ∈ {EARLY | MIDDLE | LATE}</text>
+  <text x="35" y="184" font-size="13" fill="#111111">phase instruction</text>
+
+  <rect x="360" y="90" width="170" height="130" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="445" y="160" text-anchor="middle" font-size="14" font-weight="bold" fill="#1b5e20">PathSelectionAgent</text>
+
+  <rect x="560" y="90" width="150" height="130" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.5"/>
+  <text x="635" y="150" text-anchor="middle" font-size="14" font-weight="bold" fill="#bf360c">"short"</text>
+  <text x="635" y="170" text-anchor="middle" font-size="14" font-weight="bold" fill="#bf360c">or "long"</text>
+
+  <line x1="330" y1="155" x2="356" y2="155" stroke="#555555" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="530" y1="155" x2="556" y2="155" stroke="#555555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============ ROW 2 ============ -->
+  <rect x="20" y="246" width="310" height="130" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+  <text x="35" y="300" font-size="13" fill="#111111">paths (d, τ)</text>
+  <text x="35" y="318" font-size="13" fill="#111111">chosen_path</text>
+
+  <rect x="360" y="246" width="170" height="130" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="445" y="316" text-anchor="middle" font-size="14" font-weight="bold" fill="#1b5e20">PheromoneUpdateAgent</text>
+
+  <rect x="560" y="246" width="150" height="130" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.5"/>
+  <text x="635" y="306" text-anchor="middle" font-size="14" font-weight="bold" fill="#bf360c">[τ_short, τ_long]</text>
+  <text x="635" y="326" text-anchor="middle" font-size="11" fill="#8d6e63">(JSON list)</text>
+
+  <line x1="330" y1="311" x2="356" y2="311" stroke="#555555" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="530" y1="311" x2="556" y2="311" stroke="#555555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============ ROW 3 ============ -->
+  <rect x="20" y="402" width="310" height="130" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+  <text x="35" y="456" font-size="13" fill="#111111">paths (d, τ)</text>
+  <text x="35" y="474" font-size="13" fill="#111111">evaporation rate ρ</text>
+
+  <rect x="360" y="402" width="170" height="130" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="445" y="472" text-anchor="middle" font-size="14" font-weight="bold" fill="#1b5e20">EvaporationAgent</text>
+
+  <rect x="560" y="402" width="150" height="130" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.5"/>
+  <text x="635" y="462" text-anchor="middle" font-size="14" font-weight="bold" fill="#bf360c">[τ_short, τ_long]</text>
+  <text x="635" y="482" text-anchor="middle" font-size="11" fill="#8d6e63">(JSON list)</text>
+
+  <line x1="330" y1="467" x2="356" y2="467" stroke="#555555" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="530" y1="467" x2="556" y2="467" stroke="#555555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Feedback loop: updated pheromones return as paths input for next iteration -->
+  <path d="M 635 532 L 635 560 L 12 560 L 12 112 L 20 112" fill="none" stroke="#8e24aa" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow)"/>
+  <text transform="rotate(-90)" x="-330" y="6" text-anchor="middle" font-size="10" fill="#8e24aa" font-style="italic">pheromones → paths (next iteration)</text>
+
+  <!-- Loop note -->
+  <text x="480" y="584" text-anchor="middle" font-size="12" font-style="italic" fill="#666666">Loop: three LLM calls per iteration → path selection → pheromone update → evaporation</text>
+
+  </g>
+</svg>

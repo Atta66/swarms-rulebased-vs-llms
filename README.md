@@ -7,6 +7,32 @@ Comparison of traditional rule-based swarms and LLM-driven swarms using Boids an
 - The `ACO` branch contains the implementation of classical ACO and its LLM-based counterpart.
 - The `boids` branch contains the implementation of classical Boids and the LLM-based version.
 
+## LLM input/output
+
+Both scenarios follow the same pattern: each step, small *specialist* LLM agents are given a snapshot of the swarm state (positions, velocities, pheromones, ...) and must return a small, typed decision. Everything else (integration, damping, pheromone math) stays as rule-based code around the LLM calls.
+
+### ACO — one iteration
+In each iteration the LLM is called three times:
+
+- **PathSelectionAgent**: receives the paths (`d, τ`) and the current phase (`EARLY`/`MIDDLE`/`LATE`) → returns `"short"` or `"long"`.
+- **PheromoneUpdateAgent**: receives the paths and the chosen path → returns updated pheromone levels `[τ₁, τ₂]`.
+- **EvaporationAgent**: receives the paths and the evaporation rate `ρ` → returns evaporated pheromone levels `[τ₁, τ₂]`.
+
+The updated pheromones then feed back into the next iteration.
+
+<img src="figures/llm_io_aco.svg" alt="ACO LLM input/output" width="750"/>
+
+### Boids — one boid, one time step
+For each boid, the LLM is called three times per step:
+
+- **SeparationAgent**: receives position, velocity and neighbours within radius `r` → returns `(dx, dy)` separation force.
+- **CohesionAgent**: receives position, velocity and neighbours within perception radius `R` → returns `(dx, dy)` cohesion force.
+- **AlignmentAgent**: receives position, velocity and neighbours within perception radius `R` → returns `(dx, dy)` alignment force.
+
+The three forces are combined (no LLM) into the new velocity, and the updated positions/velocities feed back into the next step.
+
+<img src="figures/llm_io_boids.svg" alt="Boids LLM input/output" width="750"/>
+
 ## Prompts for Boids
 ### Separation Prompt
 > You are a boid at position `(x, y)`. Other boids: `[((x₁, y₁), (vx₁, vy₁)), ...]`. Your task is to avoid getting too close to other boids within a radius of `R`. Return a `(dx, dy)` vector representing the separation force to apply to your velocity. Only output the vector as `(dx, dy)`. No additional text.
