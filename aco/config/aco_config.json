@@ -1,0 +1,29 @@
+{
+    "max_iterations": 18,
+    "num_trials": 30,
+    "evaporation_rate": 0.02,
+    "pheromone_deposit": 0.8,
+    "distance_weight": 1.2,
+    "initial_short_boost": 0.8,
+    "target_ratio": 236.2,
+    "ratio_tolerance": 1.0,
+    "early_steps_for_exploration": 6,
+    "paths": {
+        "short": {
+            "distance": 1,
+            "initial_pheromone": 1.0
+        },
+        "long": {
+            "distance": 2,
+            "initial_pheromone": 2.0
+        }
+    },
+    "visualization": {
+        "show_plots": false,
+        "pause_duration": 0.01
+    },
+    "performance": {
+        "save_results": true,
+        "results_directory": "results/aco"
+    }
+}
