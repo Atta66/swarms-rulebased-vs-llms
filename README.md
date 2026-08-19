@@ -2,10 +2,12 @@
 
 Comparison of traditional rule-based swarms and LLM-driven swarms using Boids and Ant Colony Optimization.
 
-## Branches
+## Repository structure
 
-- The `ACO` branch contains the implementation of classical ACO and its LLM-based counterpart.
-- The `boids` branch contains the implementation of classical Boids and the LLM-based version.
+- `aco/` — implementation of classical ACO and its LLM-based counterpart.
+- `boids/` — implementation of classical Boids and the LLM-based version.
+- `figures/` — LLM input/output diagrams referenced in the paper.
+- `LICENSE` — MIT license.
 
 ## LLM input/output
 
